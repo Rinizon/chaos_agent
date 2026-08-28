@@ -35,6 +35,20 @@ Evidence:
 - Compose validation, smoke-script syntax validation, and the full restricted-container lifecycle smoke test passed.
 - `git diff --check` passed.
 
+### 2026-08-28: Step 3 completed
+
+Delivered a dependency-free, root-only target helper with exact `version`, `identity`, and read-only `preflight` operations; strict root-owned marker validation; bounded JSON output; fixed Apache and resource readers; an exact-match forced SSH dispatcher with a minimal replacement environment; narrow sudoers and authorized-key templates; a fictional marker; ownership/mode automation; manual provisioning, fingerprint-verification, self-test, and rollback guidance; and a disposable Linux contract-test image. No artifact installs itself or was applied to a VM.
+
+Evidence:
+
+- Pytest passed 164 tests with 93% branch-aware control-plane coverage and warnings treated as errors.
+- Unit tests cover strict marker fields, production and wrong-role refusal, symlink and mode rejection, bounded marker input, fixed Apache commands, fixed root and `/proc` resource reads, exact dispatcher operations, empty/extended/reordered/injection-shaped command refusal, and non-root helper refusal.
+- Shell syntax checks and dependency-free Python compilation passed for target artifacts.
+- The disposable Linux test image passed `visudo -cf`, ownership and mode validation, all three helper operations, direct non-root refusal, the real dispatcher-to-`sudo -n` path, and extra/injection argument refusal.
+- The helper test image uses only a fictional marker and fixed fake `systemctl`; it does not contact or provision a VM.
+- Ruff formatting and lint checks, strict mypy, Compose validation, and the restricted control-container lifecycle smoke test passed.
+- `git diff --check` passed.
+
 ## 1. Purpose and measurable outcome
 
 Phase 2 gives the chaos agent a safe, read-only path to exactly one configured development web VM. It establishes strict SSH host verification, positive application-level target identity, a fixed remote-helper protocol, a narrow non-interactive `sudo` contract, and a preflight command that refuses unhealthy or mismatched targets.
@@ -830,7 +844,7 @@ Update an item to `[x]` only when concrete evidence exists.
 - [x] Target and SSH settings have no operational host or identity defaults.
 - [x] Target user `root`, incomplete groups, unsafe files, and invalid URLs are rejected.
 - [x] Strict schemas reject unknown helper fields and unsupported versions.
-- [ ] Host-key verification and root-owned target UUID checks are both mandatory.
+- [x] Host-key verification and root-owned target UUID checks are both mandatory.
 - [x] Production, unknown, wrong-role, wrong-service, and mismatched targets are refused.
 
 ### Transport safety
@@ -843,12 +857,12 @@ Update an item to `[x]` only when concrete evidence exists.
 
 ### Target privilege boundary
 
-- [ ] Target helper is root-owned in deployment guidance and cannot accept arbitrary commands, arguments, or paths.
-- [ ] Root-owned forced dispatcher rejects every command outside the exact closed operation set.
-- [ ] Phase 2 helper operations are demonstrably read-only.
-- [ ] `sudoers` template permits only exact helper operations and passes isolated `visudo` validation.
-- [ ] SSH authorized-key restrictions and file modes are documented.
-- [ ] The agent never provisions or broadens its own privileges.
+- [x] Target helper is root-owned in deployment guidance and cannot accept arbitrary commands, arguments, or paths.
+- [x] Root-owned forced dispatcher rejects every command outside the exact closed operation set.
+- [x] Phase 2 helper operations are demonstrably read-only.
+- [x] `sudoers` template permits only exact helper operations and passes isolated `visudo` validation.
+- [x] SSH authorized-key restrictions and file modes are documented.
+- [x] The agent never provisions or broadens its own privileges.
 
 ### Preflight behavior
 

@@ -1,0 +1,13 @@
+#!/bin/sh
+set -eu
+
+case "$*" in
+    "show --property=LoadState --value apache2.service")
+        printf '%s\n' loaded
+        ;;
+    "is-active --quiet apache2.service")
+        ;;
+    *)
+        exit 1
+        ;;
+esac

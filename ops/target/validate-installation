@@ -1,0 +1,25 @@
+#!/bin/sh
+set -eu
+
+check_file() {
+    path="$1"
+    expected_owner="$2"
+    expected_mode="$3"
+    actual_owner="$(stat -c '%U:%G' "$path")"
+    actual_mode="$(stat -c '%a' "$path")"
+    test "$actual_owner" = "$expected_owner"
+    test "$actual_mode" = "$expected_mode"
+}
+
+check_file /usr/local/libexec/chaos-agent/target-helper root:root 755
+check_file /usr/local/libexec/chaos-agent/ssh-dispatcher root:root 755
+check_file /etc/chaos-agent/target.json root:root 644
+check_file /etc/sudoers.d/chaos-agent root:root 440
+check_file /home/chaos-agent/.ssh/authorized_keys root:root 600
+
+test "$(stat -c '%U:%G' /etc/chaos-agent)" = root:root
+test "$(stat -c '%a' /etc/chaos-agent)" = 755
+test "$(stat -c '%U:%G' /home/chaos-agent/.ssh)" = root:root
+test "$(stat -c '%a' /home/chaos-agent/.ssh)" = 700
+
+echo "Target access ownership and modes are valid."

@@ -1,0 +1,34 @@
+# Isolated validation image only; never use this image as a deployment target.
+FROM python:3.12.13-slim-bookworm@sha256:4766d8b510c428e595d74b9cc5bbb2fae8e26316fffb4adc89908d79aacd58a2
+
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends python3 sudo \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home --shell /bin/sh chaos-agent \
+    && install -d -o root -g root -m 0755 /usr/local/libexec/chaos-agent /etc/chaos-agent \
+    && install -d -o root -g root -m 0700 /home/chaos-agent/.ssh
+
+COPY --chmod=0755 ops/target/target-helper /usr/local/libexec/chaos-agent/target-helper
+COPY --chmod=0755 ops/target/ssh-dispatcher /usr/local/libexec/chaos-agent/ssh-dispatcher
+COPY --chmod=0755 ops/target/validate-installation /usr/local/bin/validate-chaos-agent-target
+COPY --chmod=0755 ops/target/systemctl.test-fixture /usr/bin/systemctl
+COPY --chmod=0644 ops/target/target.json.example /etc/chaos-agent/target.json
+COPY --chmod=0440 ops/target/chaos-agent.sudoers.example /etc/sudoers.d/chaos-agent
+COPY --chmod=0600 ops/target/authorized_keys.example /home/chaos-agent/.ssh/authorized_keys
+
+RUN chown -R root:root /usr/local/libexec/chaos-agent /etc/chaos-agent \
+        /etc/sudoers.d/chaos-agent /home/chaos-agent/.ssh \
+    && visudo -cf /etc/sudoers.d/chaos-agent \
+    && validate-chaos-agent-target \
+    && /usr/local/libexec/chaos-agent/target-helper version \
+    && /usr/local/libexec/chaos-agent/target-helper identity \
+    && /usr/local/libexec/chaos-agent/target-helper preflight \
+    && test "$(runuser -u chaos-agent -- /usr/local/libexec/chaos-agent/target-helper version 2>&1 || true)" = root_required \
+    && runuser -u chaos-agent -- env \
+        SSH_ORIGINAL_COMMAND="sudo -n /usr/local/libexec/chaos-agent/target-helper identity" \
+        /usr/local/libexec/chaos-agent/ssh-dispatcher \
+    && test "$(runuser -u chaos-agent -- env SSH_ORIGINAL_COMMAND='identity; sh' \
+        /usr/local/libexec/chaos-agent/ssh-dispatcher 2>&1 || true)" = command_refused \
+    && test "$(/usr/local/libexec/chaos-agent/target-helper identity extra 2>&1 || true)" = operation_invalid
+
+CMD ["/usr/local/libexec/chaos-agent/target-helper", "preflight"]

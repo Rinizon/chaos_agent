@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Forced-command dispatcher for the dedicated chaos-agent SSH key."""
+
+from __future__ import annotations
+
+import os
+import sys
+from collections.abc import Callable, Mapping
+from typing import Final, NoReturn
+
+HELPER_PATH: Final = "/usr/local/libexec/chaos-agent/target-helper"
+SUDO_PATH: Final = "/usr/bin/sudo"
+COMMANDS: Final = {
+    f"sudo -n {HELPER_PATH} version": "version",
+    f"sudo -n {HELPER_PATH} identity": "identity",
+    f"sudo -n {HELPER_PATH} preflight": "preflight",
+}
+MINIMAL_ENV: Final = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"}
+
+
+def dispatch(
+    environment: Mapping[str, str],
+    execve: Callable[[str, list[str], Mapping[str, str]], NoReturn] = os.execve,
+) -> NoReturn:
+    """Execute only an exact allowlisted original command with fixed arguments."""
+    operation = COMMANDS.get(environment.get("SSH_ORIGINAL_COMMAND", ""))
+    if operation is None:
+        raise ValueError("command_refused")
+    argv = [SUDO_PATH, "-n", HELPER_PATH, operation]
+    execve(SUDO_PATH, argv, MINIMAL_ENV)
+
+
+def main() -> int:
+    try:
+        dispatch(os.environ)
+    except ValueError:
+        print("command_refused", file=sys.stderr)
+        return 3
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
