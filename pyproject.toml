@@ -1,0 +1,60 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "chaos-agent"
+version = "0.1.0"
+description = "A safety-focused chaos experiment controller for isolated development systems"
+requires-python = ">=3.12,<4"
+dependencies = [
+  "typer>=0.15,<1",
+]
+
+[project.scripts]
+chaos = "chaos_agent.cli:app"
+
+[dependency-groups]
+dev = [
+  "build>=1.2,<2",
+  "mypy>=1.14,<2",
+  "pytest>=8.3,<9",
+  "pytest-cov>=6,<7",
+  "ruff>=0.9,<1",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/chaos_agent"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = [
+  "E",
+  "F",
+  "I",
+  "UP",
+  "B",
+  "SIM",
+  "RUF",
+]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src/chaos_agent"]
+
+[tool.coverage.run]
+branch = true
+source = ["chaos_agent"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true
+

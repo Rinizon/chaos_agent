@@ -2,7 +2,23 @@
 
 ## Status
 
-Proposed
+In progress
+
+## Implementation history
+
+### 2026-08-28: Step 1 completed
+
+Delivered the package and tooling scaffold with an installable `src/`-layout package, Typer CLI, module entry point, locked runtime and development dependencies, initial architectural package boundaries, quality-tool configuration, ignore rules, and CLI tests.
+
+Evidence:
+
+- `uv sync --all-groups --locked` completed using Python 3.12.13.
+- Pytest passed 5 tests with 90% branch-aware coverage.
+- Ruff formatting and lint checks passed.
+- Strict mypy checks passed for `src/chaos_agent`.
+- `chaos version`, `chaos version --json`, and `python -m chaos_agent version` returned version `0.1.0`.
+- Source distribution and wheel builds completed successfully.
+- `git diff --check` passed.
 
 ## 1. Purpose and measurable outcome
 
@@ -552,10 +568,10 @@ Update each item from `[ ]` to `[x]` only after recording concrete evidence in t
 
 ### Package and CLI
 
-- [ ] Python package installs successfully on Python 3.12 or newer.
-- [ ] A wheel builds successfully from committed metadata and lock data.
-- [ ] `chaos version` and `python -m chaos_agent version` return the same version.
-- [ ] CLI help is usable and contains no disruptive commands.
+- [x] Python package installs successfully on Python 3.12 or newer.
+- [x] A wheel builds successfully from committed metadata and lock data.
+- [x] `chaos version` and `python -m chaos_agent version` return the same version.
+- [x] CLI help is usable and contains no disruptive commands.
 
 ### Configuration and logging
 
