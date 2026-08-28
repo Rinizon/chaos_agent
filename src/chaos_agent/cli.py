@@ -8,7 +8,9 @@ import typer
 from pydantic import ValidationError
 
 from chaos_agent.config import load_settings
-from chaos_agent.logging import sanitize_text
+from chaos_agent.health import evaluate_health, unhealthy_configuration_report
+from chaos_agent.logging import configure_logging, sanitize_text
+from chaos_agent.runtime import run_passive_agent
 
 PACKAGE_NAME = "chaos-agent"
 
@@ -98,3 +100,51 @@ def config_check_command(
     typer.echo(
         f"Configuration is valid for agent '{settings.agent_id}' in {settings.environment.value}."
     )
+
+
+@app.command("agent")
+def agent_command() -> None:
+    """Run the passive, local-only Chaos Agent process."""
+    try:
+        settings = load_settings()
+    except ValidationError as error:
+        typer.echo("Configuration is invalid:")
+        for detail in _safe_validation_errors(error):
+            typer.echo(f"- {detail['field']}: {detail['message']}")
+        raise typer.Exit(code=2) from None
+
+    logger = configure_logging(settings)
+    exit_code = run_passive_agent(settings, logger)
+    if exit_code != 0:
+        raise typer.Exit(code=exit_code)
+
+
+@app.command("health")
+def health_command(
+    json_output: Annotated[
+        bool,
+        typer.Option("--json", help="Return machine-readable JSON output."),
+    ] = False,
+) -> None:
+    """Check only the local agent runtime and its required local storage."""
+    try:
+        settings = load_settings()
+    except ValidationError:
+        payload = unhealthy_configuration_report()
+        if json_output:
+            typer.echo(json.dumps(payload, separators=(",", ":")))
+        else:
+            typer.echo("Agent health: unhealthy")
+            typer.echo("- configuration: fail (configuration is invalid)")
+        raise typer.Exit(code=1) from None
+
+    report = evaluate_health(settings)
+    if json_output:
+        typer.echo(json.dumps(report.to_dict(), separators=(",", ":")))
+    else:
+        typer.echo(f"Agent health: {report.status.value}")
+        for check in report.checks:
+            typer.echo(f"- {check.name}: {check.status.value} ({check.message})")
+
+    if report.status.value != "healthy":
+        raise typer.Exit(code=1)

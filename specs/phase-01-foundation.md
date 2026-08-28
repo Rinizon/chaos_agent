@@ -35,6 +35,21 @@ Evidence:
 - Source distribution and wheel builds completed successfully.
 - `git diff --check` passed.
 
+### 2026-08-28: Step 3 completed
+
+Delivered a passive long-running agent process, versioned heartbeat model, restrictive atomic file persistence, injected clock and storage seams, signal-aware shutdown, local storage and heartbeat evaluation, and human and JSON `agent` and `health` CLI behavior. Health is explicitly limited to the local agent runtime and does not claim target or website readiness.
+
+Evidence:
+
+- `uv sync --all-groups --locked` completed from the committed lock.
+- Pytest passed 47 tests with 92% branch-aware coverage.
+- Deterministic tests covered heartbeat updates, missing and malformed state, stale and future timestamps, agent mismatch, stopped state, unwritable storage, and write failures.
+- A process-level smoke test delivered `SIGTERM`, observed a clean exit, and verified the final heartbeat was marked `stopped`.
+- Ruff formatting and lint checks passed.
+- Strict mypy checks passed for `src/chaos_agent`.
+- Source distribution and wheel builds completed successfully.
+- `git diff --check` passed.
+
 ## 1. Purpose and measurable outcome
 
 Phase 1 establishes a maintainable, typed, tested, and container-first Python foundation for the chaos agent. It must prove that the project can be developed locally and deployed as a safe, non-root container without implementing SSH access, persistence models, or any disruptive scenario.
@@ -598,11 +613,11 @@ Update each item from `[ ]` to `[x]` only after recording concrete evidence in t
 
 ### Runtime and health
 
-- [ ] `chaos agent` runs passively and performs no network or disruptive action.
-- [ ] Heartbeat updates are atomic and contain no secrets.
-- [ ] `chaos health` distinguishes healthy, stale, missing, malformed, and mismatched state.
-- [ ] Graceful shutdown succeeds within the documented time limit.
-- [ ] A crashed or stopped runtime cannot remain falsely healthy.
+- [x] `chaos agent` runs passively and performs no network or disruptive action.
+- [x] Heartbeat updates are atomic and contain no secrets.
+- [x] `chaos health` distinguishes healthy, stale, missing, malformed, and mismatched state.
+- [x] Graceful shutdown succeeds within the documented time limit.
+- [x] A crashed or stopped runtime cannot remain falsely healthy.
 
 ### Container
 
