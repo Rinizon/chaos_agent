@@ -20,6 +20,21 @@ Evidence:
 - The Phase 1 restricted-container smoke regression passed with the passive runtime healthy.
 - `git diff --check` passed.
 
+### 2026-08-28: Step 2 completed
+
+Delivered an application-facing remote transport boundary and a system OpenSSH adapter with a fixed closed-operation invocation, strict host-key and authentication settings, separate connect and hard process deadlines, isolated process-group termination, per-stream read limits, secret-safe error categories, and strict JSON protocol decoding into operation-specific models. Tests use local fake executables only and never open an SSH connection.
+
+Evidence:
+
+- Pytest passed 131 tests with 93% branch-aware coverage and warnings treated as errors.
+- Fake-executable tests captured the exact argument boundary and exercised successful decoding, non-zero exits, host-key and authentication failures, scoped-privilege refusal, missing helper and executable failures, malformed and trailing JSON, schema mismatch, stdout and stderr overflow, deadline expiry, and cancellation.
+- Timeout and overflow tests verified the isolated process no longer existed after termination and reaping.
+- Ruff formatting and lint checks passed.
+- Strict mypy checks passed for `src/chaos_agent`.
+- Source distribution and wheel builds completed successfully.
+- Compose validation, smoke-script syntax validation, and the full restricted-container lifecycle smoke test passed.
+- `git diff --check` passed.
+
 ## 1. Purpose and measurable outcome
 
 Phase 2 gives the chaos agent a safe, read-only path to exactly one configured development web VM. It establishes strict SSH host verification, positive application-level target identity, a fixed remote-helper protocol, a narrow non-interactive `sudo` contract, and a preflight command that refuses unhealthy or mismatched targets.
@@ -820,11 +835,11 @@ Update an item to `[x]` only when concrete evidence exists.
 
 ### Transport safety
 
-- [ ] OpenSSH uses fixed argv, `shell=False`, `/dev/null` config, strict host keys, one identity, no prompts, no forwarding, and no TTY.
-- [ ] Public interfaces cannot accept arbitrary remote commands or OpenSSH options.
-- [ ] Connect and process deadlines, cancellation, bounded streams, and process reaping are tested.
-- [ ] Raw output, key paths, secrets, and full invocation arguments are absent from reports and logs.
-- [ ] Host-key, authentication, connection, timeout, output, and helper failures are classified safely.
+- [x] OpenSSH uses fixed argv, `shell=False`, `/dev/null` config, strict host keys, one identity, no prompts, no forwarding, and no TTY.
+- [x] Public interfaces cannot accept arbitrary remote commands or OpenSSH options.
+- [x] Connect and process deadlines, cancellation, bounded streams, and process reaping are tested.
+- [x] Raw output, key paths, secrets, and full invocation arguments are absent from reports and logs.
+- [x] Host-key, authentication, connection, timeout, output, and helper failures are classified safely.
 
 ### Target privilege boundary
 
@@ -847,7 +862,7 @@ Update an item to `[x]` only when concrete evidence exists.
 
 - [ ] Image includes an OpenSSH client but no server, keys, credentials, or host keys.
 - [ ] Phase 1 container restrictions remain active.
-- [ ] Default Python and container tests contact no real target.
+- [x] Default Python and container tests contact no real target.
 - [ ] Clean-environment Python, helper, image, and container gates pass.
 - [ ] README and target-operations guide cover provisioning, fingerprint verification, preflight, refusal, rollback, and troubleshooting.
 - [ ] Repository contains no operational credentials, target UUID, fingerprint, database, or runtime data.
