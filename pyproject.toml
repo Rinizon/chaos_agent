@@ -8,6 +8,8 @@ version = "0.1.0"
 description = "A safety-focused chaos experiment controller for isolated development systems"
 requires-python = ">=3.12,<4"
 dependencies = [
+  "pydantic>=2.10,<3",
+  "pydantic-settings>=2.7,<3",
   "typer>=0.15,<1",
 ]
 
@@ -57,4 +59,3 @@ source = ["chaos_agent"]
 [tool.coverage.report]
 show_missing = true
 skip_covered = true
-

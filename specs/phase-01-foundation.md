@@ -20,6 +20,21 @@ Evidence:
 - Source distribution and wheel builds completed successfully.
 - `git diff --check` passed.
 
+### 2026-08-28: Step 2 completed
+
+Delivered typed Pydantic settings loaded from `CHAOS_` environment variables, cross-field timing validation, unsafe data-path rejection, safe human and JSON `config-check` output, structured JSON and console logging, stable event names, recursive field sanitization, free-text secret redaction, and a non-secret example environment file.
+
+Evidence:
+
+- `uv sync --all-groups --locked` completed using the updated dependency lock.
+- Pytest passed 29 tests with 95% branch-aware coverage.
+- Valid human and JSON configuration checks returned success.
+- Invalid configuration returned exit code 2 and omitted a supplied secret value.
+- Ruff formatting and lint checks passed.
+- Strict mypy checks passed for `src/chaos_agent`.
+- Source distribution and wheel builds completed successfully.
+- `git diff --check` passed.
+
 ## 1. Purpose and measurable outcome
 
 Phase 1 establishes a maintainable, typed, tested, and container-first Python foundation for the chaos agent. It must prove that the project can be developed locally and deployed as a safe, non-root container without implementing SSH access, persistence models, or any disruptive scenario.
@@ -575,11 +590,11 @@ Update each item from `[ ]` to `[x]` only after recording concrete evidence in t
 
 ### Configuration and logging
 
-- [ ] Valid Phase 1 settings load from documented environment variables.
-- [ ] Unsafe paths, invalid enum values, and invalid heartbeat timing are rejected.
-- [ ] `chaos config-check` supports human and JSON output with stable exit statuses.
-- [ ] Deployed logs are structured JSON with UTC timestamps and stable event names.
-- [ ] Tests demonstrate that secrets and full environment contents are not exposed.
+- [x] Valid Phase 1 settings load from documented environment variables.
+- [x] Unsafe paths, invalid enum values, and invalid heartbeat timing are rejected.
+- [x] `chaos config-check` supports human and JSON output with stable exit statuses.
+- [x] Deployed logs are structured JSON with UTC timestamps and stable event names.
+- [x] Tests demonstrate that secrets and full environment contents are not exposed.
 
 ### Runtime and health
 
