@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress
+Complete
 
 ## Implementation history
 
@@ -63,6 +63,21 @@ Evidence:
 - Compose configuration and smoke-script shell syntax validation passed.
 - Pytest passed 47 tests with 91% branch-aware coverage.
 - Ruff formatting, Ruff lint, strict mypy, locked dependency synchronization, package builds, and `git diff --check` passed.
+
+### 2026-08-28: Step 5 completed
+
+Delivered the Phase 1 README with architecture and responsibility boundaries, clean local setup, CLI and JSON workflows, the complete configuration contract, logging safety, hardened Compose deployment, storage and future SSH-mount guidance, precise local-health semantics, automated checks, troubleshooting, current limitations, and the Phase 2 handoff contract.
+
+Evidence:
+
+- A temporary clean repository copy, without the existing virtual environment or build output, completed locked dependency synchronization, both version entry points, configuration validation, 47 tests, Ruff formatting and linting, and strict mypy checks.
+- The final repository suite passed 47 tests with 91% branch-aware coverage.
+- Source distribution and wheel builds completed successfully.
+- Compose configuration and smoke-script shell validation passed.
+- The final isolated container lifecycle smoke test passed its build, non-root, restriction, health, stale-heartbeat, persistence, exclusion, and graceful-stop checks.
+- The repository audit found no credential, private-key, database, SQLite, heartbeat, or runtime-data files intended for commit; SSH mount contents remain ignored except for the empty placeholder.
+- Phase 1 limitations and Phase 2 ownership boundaries are documented explicitly.
+- Ruff formatting, Ruff lint, strict mypy, locked dependency synchronization, and `git diff --check` passed.
 
 ## 1. Purpose and measurable outcome
 
@@ -645,11 +660,11 @@ Update each item from `[ ]` to `[x]` only after recording concrete evidence in t
 
 ### Quality and documentation
 
-- [ ] Pytest, Ruff, mypy, wheel-build, and container-smoke quality gates pass.
-- [ ] README setup and deployment instructions work from a clean environment.
-- [ ] Phase 1 limitations and Phase 2 handoff assumptions are documented.
-- [ ] Repository contains no keys, tokens, environment secrets, databases, or runtime data.
-- [ ] Working tree is clean after the Phase 1 completion commit.
+- [x] Pytest, Ruff, mypy, wheel-build, and container-smoke quality gates pass.
+- [x] README setup and deployment instructions work from a clean environment.
+- [x] Phase 1 limitations and Phase 2 handoff assumptions are documented.
+- [x] Repository contains no keys, tokens, environment secrets, databases, or runtime data.
+- [x] Working tree is clean after the Phase 1 completion commit.
 
 ## 13. Documentation requirements
 

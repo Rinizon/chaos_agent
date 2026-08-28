@@ -30,6 +30,7 @@ secrets/ssh/*
 
 # Runtime state
 data/
+.chaos-agent-data/
 *.db
 *.sqlite
 *.sqlite3
