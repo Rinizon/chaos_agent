@@ -2,7 +2,23 @@
 
 ## Status
 
-Proposed
+In progress
+
+## Implementation history
+
+### 2026-08-28: Step 1 completed
+
+Delivered typed target, SSH, resource-reserve, and website settings; local SSH-material safety validation; strict versioned target-marker, helper-response, identity, resource, and preflight contracts; a closed remote-operation set; and exact target-identity refusal policy. The existing passive runtime remains valid without target configuration, and this step introduces no SSH, HTTP, subprocess, or real-target access.
+
+Evidence:
+
+- Pytest passed 113 tests with 93% branch-aware coverage.
+- Tests cover incomplete groups, hostile hosts, root SSH use, unsafe URLs and paths, file type and mode failures, strict schema behavior, unsupported protocol versions, and every target-identity mismatch.
+- Ruff formatting and lint checks passed.
+- Strict mypy checks passed for `src/chaos_agent`.
+- Locked dependency synchronization and source/wheel builds completed successfully.
+- The Phase 1 restricted-container smoke regression passed with the passive runtime healthy.
+- `git diff --check` passed.
 
 ## 1. Purpose and measurable outcome
 
@@ -796,11 +812,11 @@ Update an item to `[x]` only when concrete evidence exists.
 
 ### Configuration and identity
 
-- [ ] Target and SSH settings have no operational host or identity defaults.
-- [ ] Target user `root`, incomplete groups, unsafe files, and invalid URLs are rejected.
-- [ ] Strict schemas reject unknown helper fields and unsupported versions.
+- [x] Target and SSH settings have no operational host or identity defaults.
+- [x] Target user `root`, incomplete groups, unsafe files, and invalid URLs are rejected.
+- [x] Strict schemas reject unknown helper fields and unsupported versions.
 - [ ] Host-key verification and root-owned target UUID checks are both mandatory.
-- [ ] Production, unknown, wrong-role, wrong-service, and mismatched targets are refused.
+- [x] Production, unknown, wrong-role, wrong-service, and mismatched targets are refused.
 
 ### Transport safety
 
