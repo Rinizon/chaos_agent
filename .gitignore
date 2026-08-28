@@ -25,6 +25,8 @@ build/
 *.key
 known_hosts
 .ssh/
+secrets/ssh/*
+!secrets/ssh/.gitkeep
 
 # Runtime state
 data/

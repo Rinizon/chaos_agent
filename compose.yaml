@@ -1,0 +1,43 @@
+services:
+  chaos-agent:
+    image: chaos-agent:0.1.0
+    build:
+      context: .
+      dockerfile: Dockerfile
+    init: true
+    user: "10001:10001"
+    environment:
+      CHAOS_AGENT_ID: "${CHAOS_AGENT_ID:-chaos-agent-dev}"
+      CHAOS_ENVIRONMENT: development
+      CHAOS_DATA_DIR: /var/lib/chaos-agent
+      CHAOS_LOG_LEVEL: "${CHAOS_LOG_LEVEL:-INFO}"
+      CHAOS_LOG_FORMAT: json
+      CHAOS_HEARTBEAT_INTERVAL_SECONDS: "${CHAOS_HEARTBEAT_INTERVAL_SECONDS:-10}"
+      CHAOS_HEARTBEAT_MAX_AGE_SECONDS: "${CHAOS_HEARTBEAT_MAX_AGE_SECONDS:-30}"
+    volumes:
+      - type: volume
+        source: agent-data
+        target: /var/lib/chaos-agent
+      - type: bind
+        source: ./secrets/ssh
+        target: /run/secrets/chaos-agent/ssh
+        read_only: true
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m,mode=1777,noexec,nosuid,nodev
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    restart: unless-stopped
+    stop_grace_period: 10s
+    healthcheck:
+      test: ["CMD", "chaos", "health", "--json"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+
+volumes:
+  agent-data:
+

@@ -50,6 +50,20 @@ Evidence:
 - Source distribution and wheel builds completed successfully.
 - `git diff --check` passed.
 
+### 2026-08-28: Step 4 completed
+
+Delivered a digest-pinned multi-stage container image, fixed non-root runtime identity, passive default command, local-agent health check, read-only-root Compose deployment, persistent data volume, dedicated read-only future SSH mount, dropped capabilities, no-new-privileges policy, finite stop grace period, restart policy, build-context exclusions, and repeatable container lifecycle smoke automation.
+
+Evidence:
+
+- The image built from the repository using pinned Python 3.12.13 and uv 0.12.7 manifests.
+- The smoke automation verified UID/GID 10001, read-only root operation, dropped capabilities, no privilege escalation, absence of a Docker socket mount, persistent data across recreation, excluded sensitive/development artifacts, and clean bounded shutdown.
+- Docker reported the container healthy with a current heartbeat and unhealthy after the heartbeat was deliberately made stale.
+- The actual Compose service reached healthy state and verified its non-root identity, read-only root filesystem, init process, `unless-stopped` restart policy, read-only SSH-material bind mount, and zero exit code after a ten-second graceful stop window.
+- Compose configuration and smoke-script shell syntax validation passed.
+- Pytest passed 47 tests with 91% branch-aware coverage.
+- Ruff formatting, Ruff lint, strict mypy, locked dependency synchronization, package builds, and `git diff --check` passed.
+
 ## 1. Purpose and measurable outcome
 
 Phase 1 establishes a maintainable, typed, tested, and container-first Python foundation for the chaos agent. It must prove that the project can be developed locally and deployed as a safe, non-root container without implementing SSH access, persistence models, or any disruptive scenario.
@@ -621,13 +635,13 @@ Update each item from `[ ]` to `[x]` only after recording concrete evidence in t
 
 ### Container
 
-- [ ] Container image builds from a clean checkout.
-- [ ] Runtime process uses a non-root UID/GID.
-- [ ] Compose drops capabilities, forbids privilege escalation, and mounts no Docker socket.
-- [ ] Application data persists across container recreation.
-- [ ] Future SSH material mount points are read-only and contain no repository credentials.
-- [ ] Container reaches healthy status and becomes unhealthy when the runtime heartbeat is stale.
-- [ ] Container stops cleanly within its grace period.
+- [x] Container image builds from a clean checkout.
+- [x] Runtime process uses a non-root UID/GID.
+- [x] Compose drops capabilities, forbids privilege escalation, and mounts no Docker socket.
+- [x] Application data persists across container recreation.
+- [x] Future SSH material mount points are read-only and contain no repository credentials.
+- [x] Container reaches healthy status and becomes unhealthy when the runtime heartbeat is stale.
+- [x] Container stops cleanly within its grace period.
 
 ### Quality and documentation
 
