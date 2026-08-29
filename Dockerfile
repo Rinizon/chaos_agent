@@ -37,6 +37,10 @@ ENV PATH=/opt/chaos-agent/.venv/bin:$PATH \
     CHAOS_HEARTBEAT_INTERVAL_SECONDS=10 \
     CHAOS_HEARTBEAT_MAX_AGE_SECONDS=30
 
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends openssh-client \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN groupadd --gid "${AGENT_GID}" chaos-agent \
     && useradd --uid "${AGENT_UID}" --gid "${AGENT_GID}" \
         --home-dir /nonexistent --no-create-home --shell /usr/sbin/nologin chaos-agent \

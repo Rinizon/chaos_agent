@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress
+Complete
 
 ## Implementation history
 
@@ -62,6 +62,23 @@ Evidence:
 - Locked dependency synchronization, source distribution, and wheel builds completed successfully.
 - Ruff formatting and lint checks, strict mypy, Compose validation, and the restricted container lifecycle smoke test passed.
 - `git diff --check` passed.
+
+### 2026-08-28: Step 5 completed
+
+Delivered the `chaos preflight` Typer adapter with stable human and versioned JSON output and exit codes; outbound OpenSSH client installation in the hardened image; a target-specific Compose overlay with required non-operational identity inputs and individual read-only SSH mounts; expanded image, passive-start, and preflight refusal smoke checks; guarded optional real-target validation; and complete operator documentation for configuration, provisioning, fingerprint verification, refusal handling, key rotation, rollback, and health boundaries. Phase 2 remains read-only and injects no chaos.
+
+Evidence:
+
+- Pytest passed 202 tests with 93% branch-aware coverage and warnings treated as errors.
+- CLI tests prove unconfigured refusal occurs before application execution and validate pass, safety-refusal, local-configuration, transport, and internal-error exit behavior without exposing secrets.
+- Base and target-overlay Compose configurations validated; the overlay requires an explicit UUID, host, and site URL and disables automatic creation of missing bind-file sources.
+- The production image contains an OpenSSH client and no SSH daemon, root SSH directory, host keys, populated global `known_hosts`, target artifacts, credentials, or repository test content.
+- The unconfigured image starts the passive agent successfully; an explicit unconfigured preflight exits `2` before target access while local container health remains independent.
+- The disposable Linux target-contract image passed its helper, ownership, `visudo`, dispatcher, and scoped-sudo checks.
+- The guarded real-target script refuses execution without an explicit acknowledgement, complete target identity configuration, and both reviewed SSH files. It was not run against a target.
+- Locked dependency synchronization, source distribution, wheel build, Ruff, strict mypy, Compose, production-container, and target-contract gates passed.
+- Repository scans found no operational target UUID, host fingerprint, SSH credential, database, or runtime state.
+- `git diff --check` passed, and the completion commit leaves the working tree clean.
 
 ## 1. Purpose and measurable outcome
 
@@ -883,18 +900,18 @@ Update an item to `[x]` only when concrete evidence exists.
 - [x] Preflight executes checks in the specified dependency order.
 - [x] Apache inactive, low reserves, high normalized load, or unhealthy site produces refusal without repair.
 - [x] Identity failure prevents later target checks.
-- [ ] Human and JSON results are stable, sanitized, and use documented exit codes.
+- [x] Human and JSON results are stable, sanitized, and use documented exit codes.
 - [x] `chaos health` remains local-only and independent from remote preflight.
 
 ### Container, testing, and documentation
 
-- [ ] Image includes an OpenSSH client but no server, keys, credentials, or host keys.
+- [x] Image includes an OpenSSH client but no server, keys, credentials, or host keys.
 - [x] Phase 1 container restrictions remain active.
 - [x] Default Python and container tests contact no real target.
-- [ ] Clean-environment Python, helper, image, and container gates pass.
-- [ ] README and target-operations guide cover provisioning, fingerprint verification, preflight, refusal, rollback, and troubleshooting.
-- [ ] Repository contains no operational credentials, target UUID, fingerprint, database, or runtime data.
-- [ ] Working tree is clean after the Phase 2 completion commit.
+- [x] Clean-environment Python, helper, image, and container gates pass.
+- [x] README and target-operations guide cover provisioning, fingerprint verification, preflight, refusal, rollback, and troubleshooting.
+- [x] Repository contains no operational credentials, target UUID, fingerprint, database, or runtime data.
+- [x] Working tree is clean after the Phase 2 completion commit.
 
 ## 17. Documentation requirements
 

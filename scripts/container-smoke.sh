@@ -17,6 +17,16 @@ trap cleanup EXIT INT TERM
 docker build --tag "${image_name}" "${repository_dir}"
 docker volume create "${volume_name}" >/dev/null
 
+docker run --rm --entrypoint /bin/sh "${image_name}" -c \
+    'ssh -V >/dev/null 2>&1 && test ! -x /usr/sbin/sshd && test ! -e /root/.ssh && test ! -e /etc/ssh/ssh_known_hosts && ! find /etc/ssh -name "ssh_host_*" -print -quit | grep -q .'
+
+set +e
+unconfigured_output=$(docker run --rm "${image_name}" preflight --json 2>/dev/null)
+unconfigured_status=$?
+set -e
+test "${unconfigured_status}" = "2"
+printf '%s\n' "${unconfigured_output}" | grep -Fq '"category":"configuration_invalid"'
+
 start_container() {
     docker run --detach \
         --name "${container_name}" \
@@ -94,7 +104,7 @@ wait_until_healthy
 docker exec "${container_name}" test -f /var/lib/chaos-agent/persistence-marker
 
 docker run --rm --entrypoint /bin/sh "${image_name}" -c \
-    'test ! -e /opt/chaos-agent/.git && test ! -e /opt/chaos-agent/tests && test ! -e /opt/chaos-agent/.env && test ! -e /root/.ssh'
+    'test ! -e /opt/chaos-agent/.git && test ! -e /opt/chaos-agent/tests && test ! -e /opt/chaos-agent/.env && test ! -e /opt/chaos-agent/ops'
 
 docker stop --time 10 "${container_name}" >/dev/null
 test "$(docker inspect --format '{{.State.ExitCode}}' "${container_name}")" = "0"

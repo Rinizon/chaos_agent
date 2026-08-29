@@ -62,9 +62,15 @@ sudo -u chaos-agent sudo -n /usr/local/libexec/chaos-agent/target-helper preflig
 
 The first command must report `root_required`; the three scoped `sudo -n` commands must emit one compact JSON document. Unknown operations, additional arguments, paths, and shell fragments must fail.
 
+After the control VM has a separately verified host key and complete target configuration, run `chaos preflight --json` from the control plane. A pass must show both the pinned SSH transport and the exact marker UUID; site availability alone is insufficient.
+
 ## Host-key verification
 
 Obtain the target's public host-key fingerprint from its console or trusted infrastructure inventory. Compare that independently obtained fingerprint with the key intended for the control VM's dedicated `known_hosts` file. Do not trust unverified `ssh-keyscan` output: it proves reachability, not identity. Never use `StrictHostKeyChecking=accept-new` or disable verification.
+
+## Key rotation
+
+Generate a new dedicated key through the operator's secret-management process. Add a second fully restricted forced-command entry, mount the new private key, and verify a complete preflight. Only after that pass, remove the old authorized-key entry and old private key. Host-key changes are a separate identity event: verify a changed server fingerprint independently before replacing `known_hosts`; never accept it automatically.
 
 ## Rollback
 
