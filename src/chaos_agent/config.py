@@ -119,6 +119,19 @@ class Settings(BaseSettings):
     max_experiment_duration_seconds: int = Field(default=900, ge=30, le=3600)
     supervisor_poll_interval_seconds: int = Field(default=1, ge=1, le=10)
     cleanup_max_attempts: int = Field(default=3, ge=1, le=10)
+    cleanup_retry_base_seconds: int = Field(default=2, ge=1, le=30)
+    lease_duration_seconds: int = Field(default=30, ge=10, le=120)
+    lease_renew_interval_seconds: int = Field(default=10, ge=1, le=59)
+    observation_interval_seconds: int = Field(default=5, ge=1, le=60)
+    shutdown_cleanup_grace_seconds: int = Field(default=60, ge=10, le=300)
+
+    @model_validator(mode="after")
+    def validate_experiment_limits(self) -> "Settings":
+        if self.max_experiment_duration_seconds < self.default_experiment_duration_seconds:
+            raise ValueError("maximum experiment duration must include the default duration")
+        if self.lease_renew_interval_seconds * 2 >= self.lease_duration_seconds:
+            raise ValueError("lease renewal interval must be less than half the lease duration")
+        return self
 
     target_id: UUID | None = None
     target_host: str | None = None

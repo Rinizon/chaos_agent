@@ -1,6 +1,6 @@
 """Transactional experiment repository."""
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
@@ -109,6 +109,55 @@ class ExperimentRepository:
 
     def get(self, experiment_id: str) -> ExperimentRow | None:
         return self.session.get(ExperimentRow, ExperimentId.validate(experiment_id))
+
+    def claim_next(
+        self, instance_id: str, now: datetime, lease_seconds: int
+    ) -> ExperimentRow | None:
+        """Claim the oldest planned or expired-lease experiment with CAS semantics."""
+        candidate = self.session.scalars(
+            select(ExperimentRow)
+            .where(
+                ExperimentRow.state.in_(["planned", "preflight", "cleaning_up", "cleanup_failed"]),
+                (
+                    ExperimentRow.owner_instance_id.is_(None)
+                    | (ExperimentRow.lease_expires_at < now)
+                ),
+            )
+            .order_by(ExperimentRow.created_at, ExperimentRow.experiment_id)
+            .limit(1)
+        ).first()
+        if candidate is None:
+            return None
+        result = self.session.execute(
+            update(ExperimentRow)
+            .where(
+                ExperimentRow.experiment_id == candidate.experiment_id,
+                ExperimentRow.revision == candidate.revision,
+            )
+            .values(
+                owner_instance_id=instance_id,
+                lease_acquired_at=now,
+                lease_expires_at=now + timedelta(seconds=lease_seconds),
+            )
+        )
+        if result.rowcount != 1:
+            self.session.rollback()
+            return None
+        self.session.flush()
+        return self.get(candidate.experiment_id)
+
+    def renew_lease(
+        self, experiment_id: str, instance_id: str, now: datetime, lease_seconds: int
+    ) -> bool:
+        result = self.session.execute(
+            update(ExperimentRow)
+            .where(
+                ExperimentRow.experiment_id == experiment_id,
+                ExperimentRow.owner_instance_id == instance_id,
+            )
+            .values(lease_expires_at=now + timedelta(seconds=lease_seconds))
+        )
+        return result.rowcount == 1
 
     def list_active(self) -> list[ExperimentRow]:
         return list(
