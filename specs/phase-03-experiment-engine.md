@@ -2,7 +2,7 @@
 
 ## Status
 
-Proposed
+In progress — Step 1 (experiment and scenario domain contracts) complete.
 
 ## 1. Purpose and measurable outcome
 
@@ -586,7 +586,7 @@ Each step is an independently verified Git change. Follow `AGENTS.md`: inspect s
 
 ### Step 1: Experiment and scenario domain contracts
 
-Deliver the lifecycle enums, transition policy, IDs, requests, strict parameters, cleanup context, evidence, observation, and scenario interfaces. Add exhaustive domain tests. Do not add SQLAlchemy or a production scenario yet.
+Complete. Delivered lifecycle enums, transition policy, opaque IDs, strict requests and context models, sanitized evidence, and the typed scenario interface with exhaustive domain tests. No SQLAlchemy or production scenario was added.
 
 ### Step 2: SQLite persistence and migrations
 
