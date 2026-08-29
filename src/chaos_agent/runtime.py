@@ -146,6 +146,7 @@ class FileHeartbeatRepository:
 
 
 WaitForStop = Callable[[float], bool]
+SupervisorTick = Callable[[], None]
 SignalHandler = Callable[[int, FrameType | None], Any] | int | None
 
 
@@ -160,12 +161,14 @@ class PassiveRuntime:
         *,
         clock: Clock | None = None,
         wait_for_stop: WaitForStop,
+        supervisor_tick: SupervisorTick | None = None,
     ) -> None:
         self.settings = settings
         self.repository = repository
         self.logger = logger
         self.clock = clock or SystemClock()
         self.wait_for_stop = wait_for_stop
+        self.supervisor_tick = supervisor_tick
 
     def run(self) -> int:
         """Run until stopped, returning non-zero when heartbeat safety fails."""
@@ -191,6 +194,14 @@ class PassiveRuntime:
         )
 
         while not self.wait_for_stop(float(self.settings.heartbeat_interval_seconds)):
+            if self.supervisor_tick is not None:
+                try:
+                    self.supervisor_tick()
+                except Exception:
+                    log_event(
+                        self.logger, logging.ERROR, LogEvent.AGENT_DEGRADED,
+                        "supervisor tick failed", agent_id=self.settings.agent_id,
+                    )
             if not self._write_heartbeat(process_started_at, RuntimeStatus.READY):
                 self._invalidate_after_failure()
                 return 1

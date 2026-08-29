@@ -33,6 +33,7 @@ class ExperimentCoordinator:
         preflight: PreflightPort,
         clock: ClockPort | None = None,
         actor: str = "supervisor",
+        cleanup_max_attempts: int = 3,
     ) -> None:
         self.session = session
         self.repository = ExperimentRepository(session)
@@ -40,6 +41,7 @@ class ExperimentCoordinator:
         self.preflight = preflight
         self.clock = clock or SystemClock()
         self.actor = actor
+        self.cleanup_max_attempts = max(1, cleanup_max_attempts)
 
     def run_once(self, experiment_id: str) -> ExperimentState:
         row = self.repository.get(experiment_id)
@@ -90,7 +92,9 @@ class ExperimentCoordinator:
                     expected_revision=current.revision,
                 )
                 self.session.commit()
-            state = self._cleanup(experiment_id)
+            state = self._cleanup(
+                experiment_id, cancelled=state is ExperimentState.CANCELLATION_REQUESTED
+            )
         return state
 
     def _prepare(self, row) -> ExperimentState:
@@ -182,7 +186,7 @@ class ExperimentCoordinator:
                 self.session.commit()
             return ExperimentState.CLEANING_UP
 
-    def _cleanup(self, experiment_id: str) -> ExperimentState:
+    def _cleanup(self, experiment_id: str, *, cancelled: bool = False) -> ExperimentState:
         row = self.repository.get(experiment_id)
         if row is None:
             raise KeyError("experiment not found")
@@ -208,6 +212,19 @@ class ExperimentCoordinator:
         )
         self.session.commit()
         if evidence is None or evidence.status != "ok":
+            context_values = dict(row.cleanup_context or {})
+            attempts = list(context_values.get("cleanup_attempts", []))
+            attempts.append(str(attempt))
+            context_values["cleanup_attempts"] = attempts[-self.cleanup_max_attempts :]
+            row.cleanup_context = context_values
+            if attempt >= self.cleanup_max_attempts:
+                self.repository.transition(
+                    experiment_id, ExperimentState.OPERATOR_ATTENTION,
+                    reason="cleanup_failed", actor=self.actor, expected_revision=row.revision,
+                )
+                row.attention_reason = "cleanup_attempts_exhausted"
+                self.session.commit()
+                return ExperimentState.OPERATOR_ATTENTION
             self.repository.transition(
                 experiment_id,
                 ExperimentState.CLEANUP_FAILED,
@@ -229,7 +246,16 @@ class ExperimentCoordinator:
             verified = self.scenario.verify_cleanup(context, cleanup_context).status == "ok"
         except Exception:
             verified = False
-        target = ExperimentState.PASSED if verified else ExperimentState.OPERATOR_ATTENTION
+        target = (
+            ExperimentState.CANCELLED
+            if cancelled and verified
+            else ExperimentState.PASSED
+            if verified
+            else ExperimentState.OPERATOR_ATTENTION
+        )
+        row.final_outcome = target.value
+        if target is ExperimentState.OPERATOR_ATTENTION:
+            row.attention_reason = "cleanup_verification_failed"
         self.repository.transition(
             experiment_id,
             target,

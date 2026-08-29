@@ -2,7 +2,7 @@
 
 Chaos Agent is a safety-focused controller for injecting controlled incidents into an isolated development web server. The eventual target is a Linux VM running an Apache-hosted static site, while this application runs separately on a dedicated control VM.
 
-Phase 2 adds a read-only safety preflight for one explicitly configured development VM. It verifies a pinned SSH host key and a separate root-owned target UUID, calls only three fixed helper operations, checks Apache and host reserves, and observes the website externally. It still cannot inject an incident.
+Phase 3 adds durable experiment lifecycle state, bounded cleanup controls, leases, audit records, and supervised request handling. The production scenario catalog remains empty until Phase 4, so this phase performs no real fault injection.
 
 ## Responsibility boundaries
 
@@ -46,6 +46,7 @@ The long-running process remains passive. Only an explicit `chaos preflight` inv
 - Automated Python and container lifecycle tests.
 - Strict host-key pinning and root-owned application identity verification.
 - Read-only Apache, disk-reserve, memory-reserve, load, and website preflight.
+- Durable experiment status, history, cancellation, reconciliation, leases, and cleanup audit records.
 
 ## Prerequisites
 
