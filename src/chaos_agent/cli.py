@@ -10,6 +10,7 @@ from pydantic import ValidationError
 
 from chaos_agent.adapters.http_observer import HttpxSiteObserver
 from chaos_agent.adapters.openssh import OpenSshTransport
+from chaos_agent.application.experiments import ScenarioCatalog
 from chaos_agent.application.preflight import PreflightService
 from chaos_agent.config import (
     Settings,
@@ -30,6 +31,36 @@ app = typer.Typer(
     invoke_without_command=True,
     no_args_is_help=False,
 )
+
+
+@app.command("list")
+def list_command(json_output: Annotated[bool, typer.Option("--json")] = False) -> None:
+    """List installed production scenarios."""
+    scenarios = ScenarioCatalog().list()
+    typer.echo(
+        json.dumps({"schema_version": 1, "scenarios": scenarios}, separators=(",", ":"))
+        if json_output
+        else "No production scenarios are installed."
+    )
+
+
+@app.command("run")
+def run_command(
+    scenario: str,
+    initiator: Annotated[str, typer.Option("--initiator")],
+    duration: Annotated[int | None, typer.Option("--duration")] = None,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Schedule an installed scenario; Phase 3 intentionally has none."""
+    if not ScenarioCatalog().contains(scenario):
+        payload = {"schema_version": 1, "outcome": "refused", "category": "scenario_unavailable"}
+        typer.echo(
+            json.dumps(payload, separators=(",", ":"))
+            if json_output
+            else "Scenario is unavailable."
+        )
+        raise typer.Exit(code=1)
+    raise typer.Exit(code=1)
 
 
 @app.callback()

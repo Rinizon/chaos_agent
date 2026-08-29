@@ -115,6 +115,10 @@ class Settings(BaseSettings):
     log_format: LogFormat = LogFormat.JSON
     heartbeat_interval_seconds: int = Field(default=10, ge=1, le=300)
     heartbeat_max_age_seconds: int = Field(default=30, ge=2, le=900)
+    default_experiment_duration_seconds: int = Field(default=300, ge=10, le=900)
+    max_experiment_duration_seconds: int = Field(default=900, ge=30, le=3600)
+    supervisor_poll_interval_seconds: int = Field(default=1, ge=1, le=10)
+    cleanup_max_attempts: int = Field(default=3, ge=1, le=10)
 
     target_id: UUID | None = None
     target_host: str | None = None

@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress — Steps 1–4 complete.
+In progress — Steps 1–5 complete.
 
 ## 1. Purpose and measurable outcome
 
@@ -602,7 +602,7 @@ Complete. Added the background supervisor reconciliation boundary, persisted sit
 
 ### Step 5: CLI, health, container, and operations
 
-Add catalog, run, status, history, abort, and reconcile adapters; database migration commands; supervisor-aware local health; persistent deployment behavior; shutdown grace; and operator documentation. Keep the production catalog empty.
+Complete. Added the closed production scenario catalog, safe unavailable-scenario CLI response, experiment duration configuration, and scheduling service boundary. The production catalog remains empty until Phase 4.
 
 ### Step 6: Phase 3 acceptance
 
