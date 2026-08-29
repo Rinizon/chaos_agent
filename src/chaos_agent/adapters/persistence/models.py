@@ -36,6 +36,9 @@ class ExperimentRow(Base):
     initiator: Mapped[str] = mapped_column(String(255), nullable=False)
     state: Mapped[str] = mapped_column(String(32), nullable=False)
     revision: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    owner_instance_id: Mapped[str | None] = mapped_column(String(128))
+    lease_acquired_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    lease_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     cleanup_context: Mapped[dict[str, Any] | None] = mapped_column(JSON)
     final_outcome: Mapped[str | None] = mapped_column(String(32))
     attention_reason: Mapped[str | None] = mapped_column(String(256))
@@ -71,3 +74,28 @@ class SiteObservationRow(Base):
     duration_ms: Mapped[int | None] = mapped_column(Integer)
     content_matched: Mapped[bool | None] = mapped_column(nullable=True)
     failure_category: Mapped[str | None] = mapped_column(String(64))
+
+
+class ActionAttemptRow(Base):
+    __tablename__ = "action_attempts"
+    __table_args__ = (UniqueConstraint("experiment_id", "action_kind", "attempt"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    experiment_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    action_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    attempt: Mapped[int] = mapped_column(Integer, nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    result_category: Mapped[str] = mapped_column(String(32), nullable=False)
+    evidence: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+
+
+class ControlRequestRow(Base):
+    __tablename__ = "control_requests"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    experiment_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    request_kind: Mapped[str] = mapped_column(String(32), nullable=False)
+    requester: Mapped[str] = mapped_column(String(255), nullable=False)
+    requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    processing_state: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True)
