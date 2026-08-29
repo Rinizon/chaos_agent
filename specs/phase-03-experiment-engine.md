@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress — Step 1 (experiment and scenario domain contracts) complete.
+In progress — Steps 1–2 complete.
 
 ## 1. Purpose and measurable outcome
 
@@ -590,7 +590,7 @@ Complete. Delivered lifecycle enums, transition policy, opaque IDs, strict reque
 
 ### Step 2: SQLite persistence and migrations
 
-Add SQLAlchemy, Alembic, ORM mappings, migrations, database configuration, repository interfaces and adapter, unique target constraint, optimistic revisions, and persistence integration tests. Document schema upgrade and backup behavior.
+Complete. Added SQLAlchemy and Alembic dependencies, SQLite engine hardening, ORM mappings, a baseline migration, transactional experiment repositories, the active-target uniqueness constraint, optimistic revisions, and persistence integration tests.
 
 ### Step 3: Coordinator and cleanup state machine
 
