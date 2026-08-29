@@ -14,7 +14,7 @@ from chaos_agent.domain.experiment import (
 )
 from chaos_agent.domain.preflight import SiteObservation
 
-from .models import ExperimentRow, ExperimentTransitionRow, SiteObservationRow
+from .models import ControlRequestRow, ExperimentRow, ExperimentTransitionRow, SiteObservationRow
 
 
 class ExperimentConflict(ValueError):
@@ -122,6 +122,49 @@ class ExperimentRepository:
                 .order_by(ExperimentRow.created_at, ExperimentRow.experiment_id)
             )
         )
+
+    def list_history(
+        self, *, scenario: str | None = None, state: str | None = None, limit: int = 100
+    ) -> list[ExperimentRow]:
+        """Return bounded, deterministic experiment history."""
+        limit = max(1, min(limit, 100))
+        query = select(ExperimentRow)
+        if scenario is not None:
+            query = query.where(ExperimentRow.scenario_name == scenario)
+        if state is not None:
+            query = query.where(ExperimentRow.state == state)
+        return list(
+            self.session.scalars(
+                query.order_by(
+                    ExperimentRow.created_at.desc(), ExperimentRow.experiment_id.desc()
+                ).limit(limit)
+            )
+        )
+
+    def request_control(
+        self, experiment_id: str, kind: str, requester: str, idempotency_key: str
+    ) -> bool:
+        """Durably enqueue an idempotent cancellation or reconciliation request."""
+        from sqlalchemy.exc import IntegrityError
+
+        ExperimentId.validate(experiment_id)
+        if self.get(experiment_id) is None:
+            raise KeyError("experiment not found")
+        request = ControlRequestRow(
+            experiment_id=experiment_id,
+            request_kind=kind,
+            requester=requester,
+            requested_at=datetime.now(UTC),
+            processing_state="pending",
+            idempotency_key=idempotency_key,
+        )
+        try:
+            self.session.add(request)
+            self.session.flush()
+        except IntegrityError:
+            self.session.rollback()
+            return False
+        return True
 
     def record_observation(
         self,

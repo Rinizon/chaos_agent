@@ -102,6 +102,24 @@ class ExperimentCoordinator:
                 actor=self.actor,
                 expected_revision=row.revision,
             )
+        parameters = self.scenario.parameters_model.model_validate(row.parameters)
+        scenario_preflight = getattr(self.scenario, "preflight", None)
+        if scenario_preflight is not None:
+            evidence = scenario_preflight(
+                ScenarioContext(experiment_id=row.experiment_id, target_id=row.target_id),
+                parameters,
+            )
+            if evidence.status != "ok":
+                current = self.repository.get(row.experiment_id)
+                self.repository.transition(
+                    row.experiment_id,
+                    ExperimentState.FAILED,
+                    reason="preflight_refused",
+                    actor=self.actor,
+                    expected_revision=current.revision,
+                )
+                self.session.commit()
+                return ExperimentState.FAILED
         if not self.preflight.check(row.experiment_id):
             current = self.repository.get(row.experiment_id)
             self.repository.transition(
@@ -127,12 +145,21 @@ class ExperimentCoordinator:
     def _inject(self, row) -> ExperimentState:
         context = ScenarioContext(experiment_id=row.experiment_id, target_id=row.target_id)
         try:
-            cleanup, evidence = self.scenario.inject(
-                context, self.scenario.parameters_model.model_validate(row.parameters)
-            )
+            parameters = self.scenario.parameters_model.model_validate(row.parameters)
+            cleanup, evidence = self.scenario.inject(context, parameters)
             if evidence.status != "ok":
                 raise RuntimeError("injection was not verified")
             current = self.repository.get(row.experiment_id)
+            if current is None:
+                raise KeyError("experiment not found")
+            current.cleanup_context = cleanup.model_dump()
+            self.session.commit()
+            verify_active = getattr(self.scenario, "verify_active", None)
+            if verify_active is not None and verify_active(context, parameters).status != "ok":
+                raise RuntimeError("active effect was not verified")
+            current = self.repository.get(row.experiment_id)
+            if current is None:
+                raise KeyError("experiment not found")
             self.repository.transition(
                 row.experiment_id,
                 ExperimentState.ACTIVE,
@@ -140,7 +167,6 @@ class ExperimentCoordinator:
                 actor=self.actor,
                 expected_revision=current.revision,
             )
-            current.cleanup_context = cleanup.model_dump()
             self.session.commit()
             return ExperimentState.ACTIVE
         except Exception:
@@ -164,8 +190,11 @@ class ExperimentCoordinator:
         cleanup_context = CleanupContext.model_validate(
             row.cleanup_context or {"version": self.scenario.version}
         )
-        evidence = self.scenario.cleanup(context, cleanup_context)
-        if evidence.status != "ok":
+        try:
+            evidence = self.scenario.cleanup(context, cleanup_context)
+        except Exception:
+            evidence = None
+        if evidence is None or evidence.status != "ok":
             self.repository.transition(
                 experiment_id,
                 ExperimentState.CLEANUP_FAILED,
@@ -183,7 +212,10 @@ class ExperimentCoordinator:
             expected_revision=row.revision,
         )
         row = self.repository.get(experiment_id)
-        verified = self.scenario.verify_cleanup(context, cleanup_context).status == "ok"
+        try:
+            verified = self.scenario.verify_cleanup(context, cleanup_context).status == "ok"
+        except Exception:
+            verified = False
         target = ExperimentState.PASSED if verified else ExperimentState.OPERATOR_ATTENTION
         self.repository.transition(
             experiment_id,

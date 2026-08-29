@@ -7,9 +7,13 @@ from typing import Annotated, NoReturn
 
 import typer
 from pydantic import ValidationError
+from sqlalchemy.orm import Session
 
 from chaos_agent.adapters.http_observer import HttpxSiteObserver
 from chaos_agent.adapters.openssh import OpenSshTransport
+from chaos_agent.adapters.persistence.database import create_database_engine
+from chaos_agent.adapters.persistence.models import Base
+from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.application.experiments import ScenarioCatalog
 from chaos_agent.application.preflight import PreflightService
 from chaos_agent.config import (
@@ -31,6 +35,26 @@ app = typer.Typer(
     invoke_without_command=True,
     no_args_is_help=False,
 )
+
+
+def _experiment_session(data_dir):
+    engine = create_database_engine(data_dir / "chaos-agent.db")
+    Base.metadata.create_all(engine)
+    return Session(engine)
+
+
+def _row_payload(row) -> dict[str, object]:
+    return {
+        "experiment_id": row.experiment_id,
+        "target_id": row.target_id,
+        "target_label": row.target_label,
+        "scenario": row.scenario_name,
+        "scenario_version": row.scenario_version,
+        "state": row.state,
+        "duration_seconds": row.requested_duration_seconds,
+        "expires_at": row.expires_at.isoformat(),
+        "initiator": row.initiator,
+    }
 
 
 @app.command("list")
@@ -61,6 +85,110 @@ def run_command(
         )
         raise typer.Exit(code=1)
     raise typer.Exit(code=1)
+
+
+@app.command("status")
+def status_command(
+    experiment_id: str | None = None, json_output: Annotated[bool, typer.Option("--json")] = False
+) -> None:
+    """Show an experiment or the currently active experiment."""
+    settings = load_settings()
+    with _experiment_session(settings.data_dir) as session:
+        repository = ExperimentRepository(session)
+        row = (
+            repository.get(experiment_id)
+            if experiment_id
+            else (repository.list_active()[:1] or [None])[0]
+        )
+        if row is None:
+            raise typer.Exit(code=1)
+        payload = _row_payload(row)
+    typer.echo(
+        json.dumps(payload, separators=(",", ":"))
+        if json_output
+        else f"{payload['experiment_id']}: {payload['state']}"
+    )
+
+
+@app.command("history")
+def history_command(
+    scenario: str | None = None,
+    state: str | None = None,
+    limit: int = 100,
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """List bounded experiment history."""
+    settings = load_settings()
+    with _experiment_session(settings.data_dir) as session:
+        rows = [
+            _row_payload(row)
+            for row in ExperimentRepository(session).list_history(
+                scenario=scenario, state=state, limit=limit
+            )
+        ]
+    typer.echo(
+        json.dumps({"schema_version": 1, "experiments": rows}, separators=(",", ":"))
+        if json_output
+        else "\n".join(f"{r['experiment_id']}: {r['state']}" for r in rows)
+    )
+
+
+@app.command("abort")
+def abort_command(
+    experiment_id: str,
+    initiator: Annotated[str, typer.Option("--initiator")],
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Durably request cancellation; cleanup is performed by the supervisor."""
+    settings = load_settings()
+    with _experiment_session(settings.data_dir) as session:
+        accepted = ExperimentRepository(session).request_control(
+            experiment_id, "cancel", initiator, f"cancel:{experiment_id}:{initiator}"
+        )
+        session.commit()
+    payload = {
+        "schema_version": 1,
+        "accepted": accepted,
+        "experiment_id": experiment_id,
+        "request": "cancel",
+    }
+    typer.echo(
+        json.dumps(payload, separators=(",", ":"))
+        if json_output
+        else ("Cancellation requested." if accepted else "Cancellation was already requested.")
+    )
+
+
+@app.command("reconcile")
+def reconcile_command(
+    experiment_id: str | None = None,
+    initiator: Annotated[str, typer.Option("--initiator")] = "operator",
+    json_output: Annotated[bool, typer.Option("--json")] = False,
+) -> None:
+    """Durably request supervisor reconciliation."""
+    settings = load_settings()
+    with _experiment_session(settings.data_dir) as session:
+        rows = (
+            ExperimentRepository(session).list_active()
+            if experiment_id is None
+            else [ExperimentRepository(session).get(experiment_id)]
+        )
+        accepted = 0
+        for row in rows:
+            if row and ExperimentRepository(session).request_control(
+                row.experiment_id,
+                "reconcile",
+                initiator,
+                f"reconcile:{row.experiment_id}:{initiator}",
+            ):
+                accepted += 1
+        session.commit()
+    payload = {"schema_version": 1, "accepted": accepted}
+    typer.echo(
+        json.dumps(payload, separators=(",", ":"))
+        if json_output
+        else f"Reconciliation requested for {accepted} experiment(s)."
+    )
 
 
 @app.callback()
