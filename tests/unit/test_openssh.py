@@ -12,10 +12,9 @@ from chaos_agent.adapters.openssh import (
     HELPER_PATH,
     MAX_STREAM_BYTES,
     OpenSshTransport,
-    RemoteTransportError,
-    TransportFailure,
     build_ssh_argv,
 )
+from chaos_agent.application.remote import RemoteTransportError, TransportFailure
 from chaos_agent.config import Settings, TargetAccessConfig
 from chaos_agent.domain.target import HelperVersionResponse, RemoteOperation
 
@@ -93,6 +92,30 @@ def test_fake_executable_captures_exact_argv_and_returns_strict_model(tmp_path: 
         "chaos-agent@dev-web.internal",
         f"sudo -n {HELPER_PATH} version",
     ]
+
+
+@pytest.mark.parametrize(
+    "reported,expected",
+    [("OpenSSH_9.8p1 synthetic", "OpenSSH_9.8"), ("OpenSSH_8.0", "OpenSSH_8.0")],
+)
+def test_client_check_accepts_supported_openssh_versions(
+    tmp_path: Path, reported: str, expected: str
+) -> None:
+    executable = fake_executable(tmp_path, f"printf '%s' '{reported}' >&2")
+
+    result = asyncio.run(OpenSshTransport(executable=str(executable)).check_client())
+
+    assert result == expected
+
+
+@pytest.mark.parametrize("reported", ["not-openssh", "OpenSSH_7.9"])
+def test_client_check_refuses_unknown_or_old_clients(tmp_path: Path, reported: str) -> None:
+    executable = fake_executable(tmp_path, f"printf '%s' '{reported}' >&2")
+
+    with pytest.raises(RemoteTransportError) as captured:
+        asyncio.run(OpenSshTransport(executable=str(executable)).check_client())
+
+    assert captured.value.category is TransportFailure.SSH_CLIENT_UNSUPPORTED
 
 
 @pytest.mark.parametrize(

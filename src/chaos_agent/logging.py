@@ -35,7 +35,7 @@ _PRIVATE_KEY_BLOCK = re.compile(
 
 
 class LogEvent(StrEnum):
-    """Stable event names used by the Phase 1 runtime."""
+    """Stable application event names."""
 
     AGENT_STARTING = "agent.starting"
     AGENT_READY = "agent.ready"
@@ -43,6 +43,7 @@ class LogEvent(StrEnum):
     AGENT_DEGRADED = "agent.degraded"
     SHUTDOWN_REQUESTED = "agent.shutdown_requested"
     AGENT_STOPPED = "agent.stopped"
+    PREFLIGHT_COMPLETED = "preflight.completed"
 
 
 def sanitize_text(value: str) -> str:

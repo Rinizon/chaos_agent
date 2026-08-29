@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StrictInt, StrictStr, model_validator
 
 
 class PreflightCheckStatus(StrEnum):
@@ -22,6 +22,16 @@ class PreflightOutcome(StrEnum):
     PASS = "pass"
     REFUSED = "refused"
     ERROR = "error"
+
+
+class SiteObservation(BaseModel):
+    """Sanitized result of one bounded external website request."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status_code: StrictInt = Field(ge=100, le=599)
+    duration_ms: StrictInt = Field(ge=0, le=60_000)
+    content_matched: StrictBool
 
 
 class PreflightCheck(BaseModel):

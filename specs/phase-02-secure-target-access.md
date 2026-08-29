@@ -49,6 +49,20 @@ Evidence:
 - Ruff formatting and lint checks, strict mypy, Compose validation, and the restricted control-container lifecycle smoke test passed.
 - `git diff --check` passed.
 
+### 2026-08-28: Step 4 completed
+
+Delivered HTTPX behind an application observation interface and an ordered preflight application service that validates the local client and SSH files, negotiates the helper protocol, verifies target identity twice, confirms scoped root helper execution, evaluates Apache and resource reserves, and checks the external website only after every target prerequisite passes. Website requests reject redirects, inherit no proxy or credential environment, enforce per-I/O and total deadlines, cap decoded response bytes, and retain no response body. Reports and the stable completion log contain only sanitized outcomes and identifiers.
+
+Evidence:
+
+- Pytest passed 193 tests with 93% branch-aware coverage and warnings treated as errors.
+- Observer tests cover status and content evidence, absence of authorization and cookie headers, redirect refusal, decoded-body limits, per-I/O failures, total request deadline, and secret-free errors.
+- Application tests cover exact check order, identity and repeated-identity refusal, transport errors, scoped-sudo refusal, unsafe local files, unsupported helper versions, Apache state, root-space and memory reserves, normalized load, website failures, dependency skips, and secret-free reports and structured logs.
+- No test contacts a real SSH target or website; SSH and HTTP behavior use local fakes and in-process transports.
+- Locked dependency synchronization, source distribution, and wheel builds completed successfully.
+- Ruff formatting and lint checks, strict mypy, Compose validation, and the restricted container lifecycle smoke test passed.
+- `git diff --check` passed.
+
 ## 1. Purpose and measurable outcome
 
 Phase 2 gives the chaos agent a safe, read-only path to exactly one configured development web VM. It establishes strict SSH host verification, positive application-level target identity, a fixed remote-helper protocol, a narrow non-interactive `sudo` contract, and a preflight command that refuses unhealthy or mismatched targets.
@@ -866,16 +880,16 @@ Update an item to `[x]` only when concrete evidence exists.
 
 ### Preflight behavior
 
-- [ ] Preflight executes checks in the specified dependency order.
-- [ ] Apache inactive, low reserves, high normalized load, or unhealthy site produces refusal without repair.
-- [ ] Identity failure prevents later target checks.
+- [x] Preflight executes checks in the specified dependency order.
+- [x] Apache inactive, low reserves, high normalized load, or unhealthy site produces refusal without repair.
+- [x] Identity failure prevents later target checks.
 - [ ] Human and JSON results are stable, sanitized, and use documented exit codes.
-- [ ] `chaos health` remains local-only and independent from remote preflight.
+- [x] `chaos health` remains local-only and independent from remote preflight.
 
 ### Container, testing, and documentation
 
 - [ ] Image includes an OpenSSH client but no server, keys, credentials, or host keys.
-- [ ] Phase 1 container restrictions remain active.
+- [x] Phase 1 container restrictions remain active.
 - [x] Default Python and container tests contact no real target.
 - [ ] Clean-environment Python, helper, image, and container gates pass.
 - [ ] README and target-operations guide cover provisioning, fingerprint verification, preflight, refusal, rollback, and troubleshooting.

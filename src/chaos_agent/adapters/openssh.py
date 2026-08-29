@@ -3,15 +3,19 @@
 import asyncio
 import json
 import os
+import re
 import signal
 from collections.abc import Sequence
 from contextlib import suppress
-from enum import StrEnum
 from typing import Final
 
 from pydantic import ValidationError
 
-from chaos_agent.application.remote import RemoteResponse
+from chaos_agent.application.remote import (
+    RemoteResponse,
+    RemoteTransportError,
+    TransportFailure,
+)
 from chaos_agent.config import TargetAccessConfig, validate_access_files
 from chaos_agent.domain.target import (
     HelperVersionResponse,
@@ -23,29 +27,8 @@ from chaos_agent.domain.target import (
 HELPER_PATH: Final = "/usr/local/libexec/chaos-agent/target-helper"
 MAX_STREAM_BYTES: Final = 65_536
 TERMINATION_GRACE_SECONDS: Final = 1.0
-
-
-class TransportFailure(StrEnum):
-    """Stable, secret-safe OpenSSH failure categories."""
-
-    SSH_EXECUTABLE_MISSING = "ssh_executable_missing"
-    CONNECTION_TIMEOUT = "connection_timeout"
-    HOST_KEY_VERIFICATION_FAILED = "host_key_verification_failed"
-    AUTHENTICATION_FAILED = "authentication_failed"
-    CONNECTION_FAILED = "connection_failed"
-    REMOTE_PRIVILEGE_REFUSED = "remote_privilege_refused"
-    HELPER_NOT_FOUND = "helper_not_found"
-    HELPER_PROTOCOL_INVALID = "helper_protocol_invalid"
-    OUTPUT_LIMIT_EXCEEDED = "output_limit_exceeded"
-    CANCELLED = "cancelled"
-
-
-class RemoteTransportError(RuntimeError):
-    """A classified failure that contains no raw command or remote output."""
-
-    def __init__(self, category: TransportFailure) -> None:
-        self.category = category
-        super().__init__(category.value)
+CLIENT_CHECK_TIMEOUT_SECONDS: Final = 5
+OPENSSH_VERSION_PATTERN: Final = re.compile(rb"OpenSSH_([0-9]+)\.([0-9]+)")
 
 
 class _OutputLimitExceeded(Exception):
@@ -107,6 +90,18 @@ class OpenSshTransport:
     def __init__(self, *, executable: str = "ssh") -> None:
         self._executable = executable
 
+    async def check_client(self) -> str:
+        """Validate that the executable identifies as a supported OpenSSH client."""
+        return_code, stdout, stderr = await _run_bounded(
+            (self._executable, "-V"), CLIENT_CHECK_TIMEOUT_SECONDS
+        )
+        if return_code != 0:
+            raise RemoteTransportError(TransportFailure.CONNECTION_FAILED)
+        match = OPENSSH_VERSION_PATTERN.search(stdout + stderr)
+        if match is None or int(match.group(1)) < 8:
+            raise RemoteTransportError(TransportFailure.SSH_CLIENT_UNSUPPORTED)
+        return f"OpenSSH_{match.group(1).decode()}.{match.group(2).decode()}"
+
     async def execute(
         self,
         config: TargetAccessConfig,
@@ -114,46 +109,48 @@ class OpenSshTransport:
     ) -> RemoteResponse:
         validate_access_files(config)
         argv = build_ssh_argv(config, operation, executable=self._executable)
-        try:
-            process = await asyncio.create_subprocess_exec(
-                *argv,
-                stdin=asyncio.subprocess.DEVNULL,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                start_new_session=True,
-            )
-        except FileNotFoundError as error:
-            raise RemoteTransportError(TransportFailure.SSH_EXECUTABLE_MISSING) from error
-        except OSError as error:
-            raise RemoteTransportError(TransportFailure.CONNECTION_FAILED) from error
-
-        assert process.stdout is not None
-        assert process.stderr is not None
-        stdout_task = asyncio.create_task(_read_bounded(process.stdout))
-        stderr_task = asyncio.create_task(_read_bounded(process.stderr))
-        wait_task = asyncio.create_task(process.wait())
-        tasks: tuple[asyncio.Task[object], ...] = (stdout_task, stderr_task, wait_task)
-        try:
-            results = await asyncio.wait_for(
-                asyncio.gather(wait_task, stdout_task, stderr_task),
-                timeout=config.ssh_command_timeout_seconds,
-            )
-        except TimeoutError as error:
-            await _stop_and_reap(process, tasks)
-            raise RemoteTransportError(TransportFailure.CONNECTION_TIMEOUT) from error
-        except _OutputLimitExceeded as error:
-            await _stop_and_reap(process, tasks)
-            raise RemoteTransportError(TransportFailure.OUTPUT_LIMIT_EXCEEDED) from error
-        except asyncio.CancelledError as error:
-            await _stop_and_reap(process, tasks)
-            raise RemoteTransportError(TransportFailure.CANCELLED) from error
-
-        return_code = results[0]
-        stdout = results[1]
-        stderr = results[2]
+        return_code, stdout, stderr = await _run_bounded(argv, config.ssh_command_timeout_seconds)
         if return_code != 0:
             raise RemoteTransportError(_classify_failure(stderr))
         return _decode_response(stdout, operation)
+
+
+async def _run_bounded(argv: Sequence[str], timeout_seconds: int) -> tuple[int, bytes, bytes]:
+    """Run one argument-only process with bounded lifetime and streams."""
+    try:
+        process = await asyncio.create_subprocess_exec(
+            *argv,
+            stdin=asyncio.subprocess.DEVNULL,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            start_new_session=True,
+        )
+    except FileNotFoundError as error:
+        raise RemoteTransportError(TransportFailure.SSH_EXECUTABLE_MISSING) from error
+    except OSError as error:
+        raise RemoteTransportError(TransportFailure.CONNECTION_FAILED) from error
+
+    assert process.stdout is not None
+    assert process.stderr is not None
+    stdout_task = asyncio.create_task(_read_bounded(process.stdout))
+    stderr_task = asyncio.create_task(_read_bounded(process.stderr))
+    wait_task = asyncio.create_task(process.wait())
+    tasks: tuple[asyncio.Task[object], ...] = (stdout_task, stderr_task, wait_task)
+    try:
+        results = await asyncio.wait_for(
+            asyncio.gather(wait_task, stdout_task, stderr_task),
+            timeout=timeout_seconds,
+        )
+    except TimeoutError as error:
+        await _stop_and_reap(process, tasks)
+        raise RemoteTransportError(TransportFailure.CONNECTION_TIMEOUT) from error
+    except _OutputLimitExceeded as error:
+        await _stop_and_reap(process, tasks)
+        raise RemoteTransportError(TransportFailure.OUTPUT_LIMIT_EXCEEDED) from error
+    except asyncio.CancelledError as error:
+        await _stop_and_reap(process, tasks)
+        raise RemoteTransportError(TransportFailure.CANCELLED) from error
+    return results[0], results[1], results[2]
 
 
 async def _read_bounded(stream: asyncio.StreamReader) -> bytes:
