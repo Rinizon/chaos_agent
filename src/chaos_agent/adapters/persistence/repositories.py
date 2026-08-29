@@ -14,7 +14,13 @@ from chaos_agent.domain.experiment import (
 )
 from chaos_agent.domain.preflight import SiteObservation
 
-from .models import ControlRequestRow, ExperimentRow, ExperimentTransitionRow, SiteObservationRow
+from .models import (
+    ActionAttemptRow,
+    ControlRequestRow,
+    ExperimentRow,
+    ExperimentTransitionRow,
+    SiteObservationRow,
+)
 
 
 class ExperimentConflict(ValueError):
@@ -158,6 +164,60 @@ class ExperimentRepository:
             .values(lease_expires_at=now + timedelta(seconds=lease_seconds))
         )
         return result.rowcount == 1
+
+    def release_lease(self, experiment_id: str, instance_id: str) -> bool:
+        result = self.session.execute(
+            update(ExperimentRow)
+            .where(
+                ExperimentRow.experiment_id == experiment_id,
+                ExperimentRow.owner_instance_id == instance_id,
+            )
+            .values(owner_instance_id=None, lease_acquired_at=None, lease_expires_at=None)
+        )
+        return result.rowcount == 1
+
+    def record_attempt(
+        self,
+        experiment_id: str,
+        action_kind: str,
+        attempt: int,
+        result_category: str,
+        evidence: dict[str, object],
+        *,
+        started_at: datetime,
+        completed_at: datetime | None = None,
+    ) -> bool:
+        """Append one bounded action audit record, idempotently."""
+        row = ActionAttemptRow(
+            experiment_id=experiment_id,
+            action_kind=action_kind[:32],
+            attempt=attempt,
+            idempotency_key=f"{experiment_id}:{action_kind}:{attempt}",
+            started_at=started_at,
+            completed_at=completed_at,
+            result_category=result_category[:32],
+            evidence=evidence,
+        )
+        try:
+            self.session.add(row)
+            self.session.flush()
+        except IntegrityError:
+            self.session.rollback()
+            return False
+        return True
+
+    def pending_control_requests(self, experiment_id: str | None = None) -> list[ControlRequestRow]:
+        query = select(ControlRequestRow).where(ControlRequestRow.processing_state == "pending")
+        if experiment_id is not None:
+            query = query.where(ControlRequestRow.experiment_id == experiment_id)
+        return list(self.session.scalars(query.order_by(ControlRequestRow.requested_at)))
+
+    def complete_control_request(self, request_id: int, state: str = "processed") -> None:
+        self.session.execute(
+            update(ControlRequestRow)
+            .where(ControlRequestRow.id == request_id)
+            .values(processing_state=state)
+        )
 
     def list_active(self) -> list[ExperimentRow]:
         return list(

@@ -190,10 +190,23 @@ class ExperimentCoordinator:
         cleanup_context = CleanupContext.model_validate(
             row.cleanup_context or {"version": self.scenario.version}
         )
+        attempt = (
+            len(row.cleanup_context.get("cleanup_attempts", [])) + 1
+            if row.cleanup_context
+            else 1
+        )
+        started = self.clock.now()
         try:
             evidence = self.scenario.cleanup(context, cleanup_context)
         except Exception:
             evidence = None
+        self.repository.record_attempt(
+            experiment_id, "cleanup", attempt,
+            "ok" if evidence is not None and evidence.status == "ok" else "failed",
+            {"message": "cleanup completed" if evidence is not None else "cleanup raised an error"},
+            started_at=started, completed_at=self.clock.now(),
+        )
+        self.session.commit()
         if evidence is None or evidence.status != "ok":
             self.repository.transition(
                 experiment_id,
