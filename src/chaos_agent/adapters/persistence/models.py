@@ -56,3 +56,18 @@ class ExperimentTransitionRow(Base):
     actor: Mapped[str] = mapped_column(String(255), nullable=False)
     revision: Mapped[int] = mapped_column(Integer, nullable=False)
     summary: Mapped[str] = mapped_column(Text, nullable=False, default="")
+
+
+class SiteObservationRow(Base):
+    __tablename__ = "site_observations"
+    __table_args__ = (UniqueConstraint("experiment_id", "phase", "sequence"),)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    experiment_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    phase: Mapped[str] = mapped_column(String(16), nullable=False)
+    sequence: Mapped[int] = mapped_column(Integer, nullable=False)
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    available: Mapped[bool] = mapped_column(nullable=False)
+    status_code: Mapped[int | None] = mapped_column(Integer)
+    duration_ms: Mapped[int | None] = mapped_column(Integer)
+    content_matched: Mapped[bool | None] = mapped_column(nullable=True)
+    failure_category: Mapped[str | None] = mapped_column(String(64))

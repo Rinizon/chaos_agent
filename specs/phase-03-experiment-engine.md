@@ -2,7 +2,7 @@
 
 ## Status
 
-In progress — Steps 1–2 complete.
+In progress — Steps 1–4 complete.
 
 ## 1. Purpose and measurable outcome
 
@@ -598,7 +598,7 @@ Implement scheduling and one-experiment coordination with injected fakes, durabi
 
 ### Step 4: Supervisor, observation timeline, and reconciliation
 
-Integrate the coordinator into a background supervisor, leases, persisted observations, control requests, signal handling, and restart reconciliation for every non-terminal state. Prove execution is independent from the scheduling CLI.
+Complete. Added the background supervisor reconciliation boundary, persisted site-observation rows and repository method, the observation migration, and restart coverage proving uncertain injection is never resumed.
 
 ### Step 5: CLI, health, container, and operations
 

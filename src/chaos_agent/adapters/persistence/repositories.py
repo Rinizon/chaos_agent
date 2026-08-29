@@ -12,8 +12,9 @@ from chaos_agent.domain.experiment import (
     ExperimentState,
     validate_transition,
 )
+from chaos_agent.domain.preflight import SiteObservation
 
-from .models import ExperimentRow, ExperimentTransitionRow
+from .models import ExperimentRow, ExperimentTransitionRow, SiteObservationRow
 
 
 class ExperimentConflict(ValueError):
@@ -119,5 +120,25 @@ class ExperimentRepository:
                     )
                 )
                 .order_by(ExperimentRow.created_at, ExperimentRow.experiment_id)
+            )
+        )
+
+    def record_observation(
+        self,
+        experiment_id: str,
+        phase: str,
+        sequence: int,
+        observation: SiteObservation,
+    ) -> None:
+        self.session.add(
+            SiteObservationRow(
+                experiment_id=ExperimentId.validate(experiment_id),
+                phase=phase,
+                sequence=sequence,
+                observed_at=datetime.now(UTC),
+                available=200 <= observation.status_code < 400,
+                status_code=observation.status_code,
+                duration_ms=observation.duration_ms,
+                content_matched=observation.content_matched,
             )
         )
