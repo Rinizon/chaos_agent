@@ -17,3 +17,11 @@ def test_scenarios_require_bearer_token() -> None:
     assert {item["name"] for item in response.json()["scenarios"]} == {
         "apache-stop", "cpu-pressure", "disk-pressure"
     }
+
+
+def test_dashboard_is_safe_html_and_public_shell() -> None:
+    client = TestClient(create_app(Settings(api_bearer_token="x" * 16)))
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "Chaos Agent" in response.text
+    assert "innerHTML" not in response.text

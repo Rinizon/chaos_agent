@@ -4,11 +4,16 @@ import secrets
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
+from chaos_agent.adapters.persistence.database import create_database_engine
+from chaos_agent.adapters.persistence.models import Base
+from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.application.experiments import ScenarioCatalog, schedule_experiment
 from chaos_agent.config import Settings, load_settings
+from chaos_agent.dashboard import DASHBOARD_HTML
 from chaos_agent.domain.experiment import ExperimentRequest
 
 bearer = HTTPBearer(auto_error=False)
@@ -39,6 +44,10 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     def health() -> dict[str, object]:
         return {"status": "ok", "service": "chaos-agent"}
 
+    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
+    def dashboard() -> str:
+        return DASHBOARD_HTML
+
     @app.get("/api/v1/scenarios")
     def scenarios(_: Annotated[str, Depends(authenticate)]) -> dict[str, object]:
         return {"schema_version": 1, "scenarios": ScenarioCatalog().list()}
@@ -68,5 +77,18 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             actor=actor,
         )
         return {"schema_version": 1, "experiment_id": identifier, "state": "planned"}
+
+    @app.get("/api/v1/experiments")
+    def experiments(_: Annotated[str, Depends(authenticate)]) -> dict[str, object]:
+        engine = create_database_engine(configured.data_dir / "chaos-agent.db")
+        Base.metadata.create_all(engine)
+        from sqlalchemy.orm import Session
+        with Session(engine) as session:
+            rows = ExperimentRepository(session).list_history(limit=100)
+            return {"schema_version": 1, "experiments": [
+                {"experiment_id": row.experiment_id, "scenario": row.scenario_name,
+                 "state": row.state, "expires_at": row.expires_at.isoformat()}
+                for row in rows
+            ]}
 
     return app
