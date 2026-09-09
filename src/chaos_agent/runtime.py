@@ -290,11 +290,34 @@ def signal_shutdown(stop_event: Event) -> Iterator[None]:
 def run_passive_agent(settings: Settings, logger: logging.Logger) -> int:
     """Run the production passive runtime with filesystem and signal adapters."""
     stop_event = Event()
+    supervisor_tick = None
+    if (
+        settings.target_id is not None
+        and settings.target_host is not None
+        and settings.site_health_url is not None
+    ):
+        from sqlalchemy.orm import Session
+
+        from chaos_agent.adapters.persistence.database import create_database_engine
+        from chaos_agent.adapters.persistence.models import Base
+        from chaos_agent.application.production import coordinator_factory
+        from chaos_agent.application.supervisor import Supervisor
+        engine = create_database_engine(settings.data_dir / "chaos-agent.db")
+        Base.metadata.create_all(engine)
+        session = Session(engine)
+        supervisor = Supervisor(
+            session,
+            coordinator_factory(settings),
+            lease_duration_seconds=settings.lease_duration_seconds,
+        )
+        def supervisor_tick() -> None:
+            supervisor.run_once()
     runtime = PassiveRuntime(
         settings,
         FileHeartbeatRepository(settings.data_dir),
         logger,
         wait_for_stop=stop_event.wait,
+        supervisor_tick=supervisor_tick,
     )
     with signal_shutdown(stop_event):
         return runtime.run()
