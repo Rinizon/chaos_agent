@@ -1,8 +1,9 @@
 """Transactional experiment repository."""
 
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
-from sqlalchemy import select, update
+from sqlalchemy import CursorResult, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -87,7 +88,7 @@ class ExperimentRepository:
             raise KeyError("experiment not found")
         current = ExperimentState(row.state)
         validate_transition(current, target)
-        result = self.session.execute(
+        result = cast(CursorResult[Any], self.session.execute(
             update(ExperimentRow)
             .where(
                 ExperimentRow.experiment_id == experiment_id,
@@ -96,7 +97,7 @@ class ExperimentRepository:
             .values(
                 state=target.value, revision=expected_revision + 1, updated_at=datetime.now(UTC)
             )
-        )
+        ))
         if result.rowcount != 1:
             raise ExperimentConflict("experiment revision is stale")
         self.session.add(
@@ -134,7 +135,7 @@ class ExperimentRepository:
         ).first()
         if candidate is None:
             return None
-        result = self.session.execute(
+        result = cast(CursorResult[Any], self.session.execute(
             update(ExperimentRow)
             .where(
                 ExperimentRow.experiment_id == candidate.experiment_id,
@@ -145,7 +146,7 @@ class ExperimentRepository:
                 lease_acquired_at=now,
                 lease_expires_at=now + timedelta(seconds=lease_seconds),
             )
-        )
+        ))
         if result.rowcount != 1:
             self.session.rollback()
             return None
@@ -155,25 +156,25 @@ class ExperimentRepository:
     def renew_lease(
         self, experiment_id: str, instance_id: str, now: datetime, lease_seconds: int
     ) -> bool:
-        result = self.session.execute(
+        result = cast(CursorResult[Any], self.session.execute(
             update(ExperimentRow)
             .where(
                 ExperimentRow.experiment_id == experiment_id,
                 ExperimentRow.owner_instance_id == instance_id,
             )
             .values(lease_expires_at=now + timedelta(seconds=lease_seconds))
-        )
+        ))
         return result.rowcount == 1
 
     def release_lease(self, experiment_id: str, instance_id: str) -> bool:
-        result = self.session.execute(
+        result = cast(CursorResult[Any], self.session.execute(
             update(ExperimentRow)
             .where(
                 ExperimentRow.experiment_id == experiment_id,
                 ExperimentRow.owner_instance_id == instance_id,
             )
             .values(owner_instance_id=None, lease_acquired_at=None, lease_expires_at=None)
-        )
+        ))
         return result.rowcount == 1
 
     def record_attempt(

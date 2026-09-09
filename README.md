@@ -431,6 +431,21 @@ Phase 3 adds experiment lifecycle, persistence, automatic expiry, cleanup, recon
 
 Phase 2 completion does not authorize a scenario to run without its later scenario-specific safety design and implementation.
 
+### Phase 3 database operations
+
+The experiment database is the `chaos-agent.db` file beneath `CHAOS_DATA_DIR`. Apply schema changes explicitly from a controlled working directory; the application does not migrate the database from a health check or background loop:
+
+```sh
+cd /path/to/chaos-agent
+CHAOS_DATA_DIR=/var/lib/chaos-agent .venv/bin/alembic upgrade head
+```
+
+Before an upgrade, stop the agent and make a consistent SQLite backup with the SQLite backup API (or an equivalent database-aware tool). Do not copy a live WAL-mode database file. Verify the backup by opening it read-only and checking that its Alembic revision is expected. Restore only while the agent is stopped, then run `alembic upgrade head` and `chaos health --json`.
+
+`chaos abort <experiment-id> --initiator <name>` records a durable cancellation request; the supervisor performs cleanup. `chaos reconcile` records a reconciliation request for active experiments. Neither command performs target operations in the CLI process.
+
+If cleanup retries are exhausted or final verification cannot prove safety, the experiment enters `operator_attention`. Preserve the database and logs, stop launching new experiments, verify target identity through the normal read-only preflight path, and follow the scenario-specific emergency procedure. The agent does not guess at ownership or broaden privileges to recover automatically.
+
 ## Project planning
 
 - [Project roadmap](ROADMAP.md)

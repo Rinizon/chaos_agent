@@ -1,10 +1,11 @@
 """Deterministic experiment coordinator with cleanup-first safety behavior."""
 
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from sqlalchemy.orm import Session
 
+from chaos_agent.adapters.persistence.models import ExperimentRow
 from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.domain.experiment import ExperimentState
 from chaos_agent.domain.scenario import CleanupContext, Scenario, ScenarioContext
@@ -29,7 +30,7 @@ class ExperimentCoordinator:
     def __init__(
         self,
         session: Session,
-        scenario: Scenario,
+        scenario: Scenario[Any],
         preflight: PreflightPort,
         clock: ClockPort | None = None,
         actor: str = "supervisor",
@@ -84,6 +85,8 @@ class ExperimentCoordinator:
                 ExperimentState.CANCELLATION_REQUESTED,
             }:
                 current = self.repository.get(experiment_id)
+                if current is None:
+                    raise KeyError("experiment not found")
                 self.repository.transition(
                     experiment_id,
                     ExperimentState.CLEANING_UP,
@@ -97,7 +100,7 @@ class ExperimentCoordinator:
             )
         return state
 
-    def _prepare(self, row) -> ExperimentState:
+    def _prepare(self, row: ExperimentRow) -> ExperimentState:
         if ExperimentState(row.state) is ExperimentState.PLANNED:
             self.repository.transition(
                 row.experiment_id,
@@ -115,6 +118,8 @@ class ExperimentCoordinator:
             )
             if evidence.status != "ok":
                 current = self.repository.get(row.experiment_id)
+                if current is None:
+                    raise KeyError("experiment not found")
                 self.repository.transition(
                     row.experiment_id,
                     ExperimentState.FAILED,
@@ -126,6 +131,8 @@ class ExperimentCoordinator:
                 return ExperimentState.FAILED
         if not self.preflight.check(row.experiment_id):
             current = self.repository.get(row.experiment_id)
+            if current is None:
+                raise KeyError("experiment not found")
             self.repository.transition(
                 row.experiment_id,
                 ExperimentState.FAILED,
@@ -136,6 +143,8 @@ class ExperimentCoordinator:
             self.session.commit()
             return ExperimentState.FAILED
         current = self.repository.get(row.experiment_id)
+        if current is None:
+            raise KeyError("experiment not found")
         self.repository.transition(
             row.experiment_id,
             ExperimentState.INJECTING,
@@ -146,7 +155,7 @@ class ExperimentCoordinator:
         self.session.commit()
         return ExperimentState.INJECTING
 
-    def _inject(self, row) -> ExperimentState:
+    def _inject(self, row: ExperimentRow) -> ExperimentState:
         context = ScenarioContext(experiment_id=row.experiment_id, target_id=row.target_id)
         try:
             parameters = self.scenario.parameters_model.model_validate(row.parameters)
@@ -242,6 +251,8 @@ class ExperimentCoordinator:
             expected_revision=row.revision,
         )
         row = self.repository.get(experiment_id)
+        if row is None:
+            raise KeyError("experiment not found")
         try:
             verified = self.scenario.verify_cleanup(context, cleanup_context).status == "ok"
         except Exception:

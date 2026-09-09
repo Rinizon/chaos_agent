@@ -3,6 +3,7 @@
 import asyncio
 import json
 from importlib.metadata import PackageNotFoundError, version
+from pathlib import Path
 from typing import Annotated, NoReturn
 
 import typer
@@ -12,7 +13,7 @@ from sqlalchemy.orm import Session
 from chaos_agent.adapters.http_observer import HttpxSiteObserver
 from chaos_agent.adapters.openssh import OpenSshTransport
 from chaos_agent.adapters.persistence.database import create_database_engine
-from chaos_agent.adapters.persistence.models import Base
+from chaos_agent.adapters.persistence.models import Base, ExperimentRow
 from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.application.experiments import ScenarioCatalog
 from chaos_agent.application.preflight import PreflightService
@@ -37,13 +38,13 @@ app = typer.Typer(
 )
 
 
-def _experiment_session(data_dir):
+def _experiment_session(data_dir: Path) -> Session:
     engine = create_database_engine(data_dir / "chaos-agent.db")
     Base.metadata.create_all(engine)
     return Session(engine)
 
 
-def _row_payload(row) -> dict[str, object]:
+def _row_payload(row: ExperimentRow) -> dict[str, object]:
     return {
         "experiment_id": row.experiment_id,
         "target_id": row.target_id,
@@ -95,10 +96,8 @@ def status_command(
     settings = load_settings()
     with _experiment_session(settings.data_dir) as session:
         repository = ExperimentRepository(session)
-        row = (
-            repository.get(experiment_id)
-            if experiment_id
-            else (repository.list_active()[:1] or [None])[0]
+        row = repository.get(experiment_id) if experiment_id else next(
+            iter(repository.list_active()), None
         )
         if row is None:
             raise typer.Exit(code=1)
