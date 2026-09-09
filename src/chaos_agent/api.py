@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
 from chaos_agent.adapters.persistence.database import create_database_engine
 from chaos_agent.adapters.persistence.models import Base
+from chaos_agent.adapters.persistence.outbox import IntegrationOutbox
 from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.application.experiments import ScenarioCatalog, schedule_experiment
 from chaos_agent.config import Settings, load_settings
@@ -90,5 +91,14 @@ def create_app(settings: Settings | None = None) -> FastAPI:
                  "state": row.state, "expires_at": row.expires_at.isoformat()}
                 for row in rows
             ]}
+
+    @app.get("/api/v1/integration/events")
+    def integration_events(_: Annotated[str, Depends(authenticate)]) -> dict[str, object]:
+        engine = create_database_engine(configured.data_dir / "chaos-agent.db")
+        Base.metadata.create_all(engine)
+        from sqlalchemy.orm import Session
+        with Session(engine) as session:
+            events = [row.payload for row in IntegrationOutbox(session).pending()]
+            return {"schema_version": 1, "events": events}
 
     return app

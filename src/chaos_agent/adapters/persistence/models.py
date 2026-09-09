@@ -99,3 +99,14 @@ class ControlRequestRow(Base):
     requested_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     processing_state: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     idempotency_key: Mapped[str] = mapped_column(String(160), nullable=False, unique=True)
+
+
+class IntegrationEventRow(Base):
+    __tablename__ = "integration_events"
+    event_id: Mapped[str] = mapped_column(String(36), primary_key=True)
+    experiment_id: Mapped[str] = mapped_column(String(36), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    occurred_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
+    delivery_state: Mapped[str] = mapped_column(String(16), nullable=False, default="pending")
+    attempts: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
