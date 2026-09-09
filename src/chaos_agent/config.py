@@ -113,6 +113,7 @@ class Settings(BaseSettings):
     data_dir: Path = Path("/var/lib/chaos-agent")
     log_level: LogLevel = LogLevel.INFO
     log_format: LogFormat = LogFormat.JSON
+    api_bearer_token: str | None = Field(default=None, min_length=16, max_length=512)
     heartbeat_interval_seconds: int = Field(default=10, ge=1, le=300)
     heartbeat_max_age_seconds: int = Field(default=30, ge=2, le=900)
     default_experiment_duration_seconds: int = Field(default=300, ge=10, le=900)
