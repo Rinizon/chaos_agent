@@ -40,6 +40,9 @@ class RemoteOperation(StrEnum):
     APACHE_STOP_PREFLIGHT = "apache-stop-preflight"
     APACHE_STOP = "apache-stop"
     APACHE_START = "apache-start"
+    CPU_PRESSURE_PREFLIGHT = "cpu-pressure-preflight"
+    CPU_PRESSURE_START = "cpu-pressure-start"
+    CPU_PRESSURE_STOP = "cpu-pressure-stop"
 
 
 class ContractModel(BaseModel):
@@ -126,6 +129,22 @@ class ApacheControlResponse(HelperEnvelope):
     installed: StrictBool
     active: StrictBool
     changed: StrictBool
+
+
+class CpuPressureResponse(HelperEnvelope):
+    """Bounded evidence from the fixed CPU-pressure workload scope."""
+
+    operation: Literal["cpu-pressure-preflight", "cpu-pressure-start", "cpu-pressure-stop"]
+    marker_schema_version: Literal[1]
+    target_id: UUID
+    environment: Literal["development"]
+    role: Literal["web"]
+    effective_uid: Literal[0]
+    workload_owned: StrictBool
+    active: StrictBool
+    changed: StrictBool
+    logical_cpu_count: StrictInt = Field(ge=1)
+    load_1m: StrictFloat = Field(ge=0, allow_inf_nan=False)
 
 
 class IdentityRefusalCode(StrEnum):

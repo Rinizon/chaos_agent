@@ -2,9 +2,12 @@
 Cmnd_Alias CHAOS_AGENT_APACHE = /usr/local/libexec/chaos-agent/target-helper apache-stop-preflight, \
     /usr/local/libexec/chaos-agent/target-helper apache-stop, \
     /usr/local/libexec/chaos-agent/target-helper apache-start
+Cmnd_Alias CHAOS_AGENT_CPU = /usr/local/libexec/chaos-agent/target-helper cpu-pressure-preflight, \
+    /usr/local/libexec/chaos-agent/target-helper cpu-pressure-start, \
+    /usr/local/libexec/chaos-agent/target-helper cpu-pressure-stop
 Cmnd_Alias CHAOS_AGENT_PHASE2 = /usr/local/libexec/chaos-agent/target-helper version, \
     /usr/local/libexec/chaos-agent/target-helper identity, \
     /usr/local/libexec/chaos-agent/target-helper preflight
 
 Defaults!CHAOS_AGENT_PHASE2 env_reset, secure_path=/usr/sbin\:/usr/bin\:/sbin\:/bin
-chaos-agent ALL=(root) NOPASSWD: CHAOS_AGENT_PHASE2, CHAOS_AGENT_APACHE
+chaos-agent ALL=(root) NOPASSWD: CHAOS_AGENT_PHASE2, CHAOS_AGENT_APACHE, CHAOS_AGENT_CPU

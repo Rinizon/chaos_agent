@@ -17,6 +17,9 @@ COMMANDS: Final = {
     f"sudo -n {HELPER_PATH} apache-stop-preflight": "apache-stop-preflight",
     f"sudo -n {HELPER_PATH} apache-stop": "apache-stop",
     f"sudo -n {HELPER_PATH} apache-start": "apache-start",
+    f"sudo -n {HELPER_PATH} cpu-pressure-preflight": "cpu-pressure-preflight",
+    f"sudo -n {HELPER_PATH} cpu-pressure-start": "cpu-pressure-start",
+    f"sudo -n {HELPER_PATH} cpu-pressure-stop": "cpu-pressure-stop",
 }
 MINIMAL_ENV: Final = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"}
 

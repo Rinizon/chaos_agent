@@ -6,6 +6,7 @@ from typing import Protocol
 from chaos_agent.config import TargetAccessConfig
 from chaos_agent.domain.target import (
     ApacheControlResponse,
+    CpuPressureResponse,
     HelperVersionResponse,
     IdentityResponse,
     PreflightResponse,
@@ -13,7 +14,11 @@ from chaos_agent.domain.target import (
 )
 
 RemoteResponse = (
-    HelperVersionResponse | IdentityResponse | PreflightResponse | ApacheControlResponse
+    HelperVersionResponse
+    | IdentityResponse
+    | PreflightResponse
+    | ApacheControlResponse
+    | CpuPressureResponse
 )
 
 

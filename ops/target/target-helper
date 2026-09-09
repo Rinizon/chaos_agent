@@ -22,6 +22,7 @@ OPERATIONS: Final = frozenset(
 )
 MAX_OUTPUT_BYTES: Final = 65_536
 MAX_MARKER_BYTES: Final = 4096
+CPU_PID_PATH: Final = Path("/run/chaos-agent-cpu-pressure.pid")
 MARKER_KEYS: Final = frozenset(
     {"schema_version", "target_id", "environment", "role", "apache_service"}
 )
@@ -130,6 +131,40 @@ def apache_control(
     return {**after, "changed": True}
 
 
+def cpu_control(operation: str) -> dict[str, object]:
+    """Manage one fixed, non-root CPU workload with a root-owned PID record."""
+    cpus = os.cpu_count() or 1
+    load = os.getloadavg()[0]
+    active = False
+    owned = False
+    if CPU_PID_PATH.exists():
+        try:
+            pid = int(CPU_PID_PATH.read_text(encoding="ascii"))
+            cmdline = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\0", b" ").strip()
+            owned = cmdline == b"/usr/bin/yes"
+            active = owned
+        except (OSError, ValueError):
+            pass
+    if operation == "cpu-pressure-preflight":
+        return {"workload_owned": owned, "active": active, "changed": False,
+                "logical_cpu_count": cpus, "load_1m": float(load)}
+    if operation == "cpu-pressure-start":
+        if active:
+            raise HelperFailure("cpu_workload_already_active")
+        process = subprocess.Popen(["/usr/bin/yes"], stdout=subprocess.DEVNULL,
+                                   stderr=subprocess.DEVNULL, start_new_session=True)
+        CPU_PID_PATH.write_text(str(process.pid), encoding="ascii")
+        return {"workload_owned": True, "active": True, "changed": True,
+                "logical_cpu_count": cpus, "load_1m": float(load)}
+    if operation == "cpu-pressure-stop":
+        if active:
+            os.kill(pid, 15)
+            CPU_PID_PATH.unlink(missing_ok=True)
+        return {"workload_owned": False, "active": False, "changed": active,
+                "logical_cpu_count": cpus, "load_1m": float(load)}
+    raise HelperFailure("operation_invalid", exit_code=2)
+
+
 def resource_facts(
     statvfs: Callable[[str], os.statvfs_result] = os.statvfs,
     meminfo_path: Path = Path("/proc/meminfo"),
@@ -197,6 +232,9 @@ def build_response(
         return envelope
     if operation in {"apache-stop-preflight", "apache-stop", "apache-start"}:
         envelope.update({"effective_uid": 0, **apache_control(operation, str(marker["apache_service"]))})
+        return envelope
+    if operation in {"cpu-pressure-preflight", "cpu-pressure-start", "cpu-pressure-stop"}:
+        envelope.update({"effective_uid": 0, **cpu_control(operation)})
         return envelope
     envelope.update(
         {

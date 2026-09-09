@@ -16,11 +16,16 @@ class ScenarioCatalog:
 
     def list(self) -> list[dict[str, str]]:
         from chaos_agent.application.scenarios.apache_stop import ApacheStopScenario
+        from chaos_agent.application.scenarios.cpu_pressure import CpuPressureScenario
 
         return [{
             "name": ApacheStopScenario.name,
             "version": ApacheStopScenario.version,
             "description": ApacheStopScenario.description,
+        }, {
+            "name": CpuPressureScenario.name,
+            "version": CpuPressureScenario.version,
+            "description": CpuPressureScenario.description,
         }]
 
     def contains(self, name: str) -> bool:
