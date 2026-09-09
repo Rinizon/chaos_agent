@@ -23,6 +23,7 @@ OPERATIONS: Final = frozenset(
 MAX_OUTPUT_BYTES: Final = 65_536
 MAX_MARKER_BYTES: Final = 4096
 CPU_PID_PATH: Final = Path("/run/chaos-agent-cpu-pressure.pid")
+STORAGE_MARKER_PATH: Final = Path("/etc/chaos-agent/test-storage.json")
 MARKER_KEYS: Final = frozenset(
     {"schema_version", "target_id", "environment", "role", "apache_service"}
 )
@@ -165,6 +166,41 @@ def cpu_control(operation: str) -> dict[str, object]:
     raise HelperFailure("operation_invalid", exit_code=2)
 
 
+def disk_control(operation: str, target_id: str) -> dict[str, object]:
+    """Manage only the root-owned marker-approved test-storage artifact."""
+    try:
+        marker = json.loads(STORAGE_MARKER_PATH.read_text(encoding="utf-8"))
+        path = Path(marker["path"]).resolve(strict=True)
+        if marker.get("purpose") != "chaos-agent-test" or path == Path("/"):
+            raise HelperFailure("storage_refused")
+        statvfs = os.statvfs(path)
+        reserve = int(marker["reserve_bytes"])
+        artifact = path / f".chaos-agent-{target_id}.bin"
+    except (OSError, KeyError, TypeError, ValueError, json.JSONDecodeError) as error:
+        raise HelperFailure("storage_invalid") from error
+    owned = artifact.is_file() and artifact.name.startswith(".chaos-agent-")
+    if operation == "disk-pressure-preflight":
+        return {"storage_owned": True, "artifact_owned": owned, "active": owned,
+                "changed": False, "free_bytes": statvfs.f_bavail * statvfs.f_frsize,
+                "reserve_bytes": reserve}
+    if operation == "disk-pressure-start":
+        if owned:
+            raise HelperFailure("disk_artifact_already_active")
+        with artifact.open("xb") as handle:
+            handle.truncate(min(256 * 1024 * 1024,
+                                max(0, statvfs.f_bavail * statvfs.f_frsize - reserve)))
+        return {"storage_owned": True, "artifact_owned": True, "active": True,
+                "changed": True, "free_bytes": os.statvfs(path).f_bavail * os.statvfs(path).f_frsize,
+                "reserve_bytes": reserve}
+    if operation == "disk-pressure-stop":
+        if owned:
+            artifact.unlink()
+        return {"storage_owned": True, "artifact_owned": False, "active": False,
+                "changed": owned, "free_bytes": os.statvfs(path).f_bavail * os.statvfs(path).f_frsize,
+                "reserve_bytes": reserve}
+    raise HelperFailure("operation_invalid", exit_code=2)
+
+
 def resource_facts(
     statvfs: Callable[[str], os.statvfs_result] = os.statvfs,
     meminfo_path: Path = Path("/proc/meminfo"),
@@ -235,6 +271,9 @@ def build_response(
         return envelope
     if operation in {"cpu-pressure-preflight", "cpu-pressure-start", "cpu-pressure-stop"}:
         envelope.update({"effective_uid": 0, **cpu_control(operation)})
+        return envelope
+    if operation in {"disk-pressure-preflight", "disk-pressure-start", "disk-pressure-stop"}:
+        envelope.update({"effective_uid": 0, **disk_control(operation, str(marker["target_id"]))})
         return envelope
     envelope.update(
         {

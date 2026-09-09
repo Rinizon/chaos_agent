@@ -19,6 +19,7 @@ from chaos_agent.application.experiments import ScenarioCatalog, schedule_experi
 from chaos_agent.application.preflight import PreflightService
 from chaos_agent.application.scenarios.apache_stop import ApacheStopParameters
 from chaos_agent.application.scenarios.cpu_pressure import CpuPressureParameters
+from chaos_agent.application.scenarios.disk_pressure import DiskPressureParameters
 from chaos_agent.config import (
     Settings,
     TargetAccessConfig,
@@ -99,9 +100,11 @@ def run_command(
         parameters_values = ApacheStopParameters(duration_seconds=selected_duration).model_dump()
     elif scenario == "cpu-pressure":
         parameters_values = CpuPressureParameters(duration_seconds=selected_duration).model_dump()
+    elif scenario == "disk-pressure":
+        parameters_values = DiskPressureParameters(duration_seconds=selected_duration).model_dump()
     else:
         raise typer.Exit(code=1)
-    if scenario in {"apache-stop", "cpu-pressure"}:
+    if scenario in {"apache-stop", "cpu-pressure", "disk-pressure"}:
         identifier = schedule_experiment(
             settings.data_dir,
             ExperimentRequest(

@@ -20,6 +20,9 @@ COMMANDS: Final = {
     f"sudo -n {HELPER_PATH} cpu-pressure-preflight": "cpu-pressure-preflight",
     f"sudo -n {HELPER_PATH} cpu-pressure-start": "cpu-pressure-start",
     f"sudo -n {HELPER_PATH} cpu-pressure-stop": "cpu-pressure-stop",
+    f"sudo -n {HELPER_PATH} disk-pressure-preflight": "disk-pressure-preflight",
+    f"sudo -n {HELPER_PATH} disk-pressure-start": "disk-pressure-start",
+    f"sudo -n {HELPER_PATH} disk-pressure-stop": "disk-pressure-stop",
 }
 MINIMAL_ENV: Final = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"}
 

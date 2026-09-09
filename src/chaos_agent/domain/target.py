@@ -43,6 +43,9 @@ class RemoteOperation(StrEnum):
     CPU_PRESSURE_PREFLIGHT = "cpu-pressure-preflight"
     CPU_PRESSURE_START = "cpu-pressure-start"
     CPU_PRESSURE_STOP = "cpu-pressure-stop"
+    DISK_PRESSURE_PREFLIGHT = "disk-pressure-preflight"
+    DISK_PRESSURE_START = "disk-pressure-start"
+    DISK_PRESSURE_STOP = "disk-pressure-stop"
 
 
 class ContractModel(BaseModel):
@@ -145,6 +148,23 @@ class CpuPressureResponse(HelperEnvelope):
     changed: StrictBool
     logical_cpu_count: StrictInt = Field(ge=1)
     load_1m: StrictFloat = Field(ge=0, allow_inf_nan=False)
+
+
+class DiskPressureResponse(HelperEnvelope):
+    """Bounded evidence from the dedicated test-storage scope."""
+
+    operation: Literal["disk-pressure-preflight", "disk-pressure-start", "disk-pressure-stop"]
+    marker_schema_version: Literal[1]
+    target_id: UUID
+    environment: Literal["development"]
+    role: Literal["web"]
+    effective_uid: Literal[0]
+    storage_owned: StrictBool
+    artifact_owned: StrictBool
+    active: StrictBool
+    changed: StrictBool
+    free_bytes: StrictInt = Field(ge=0)
+    reserve_bytes: StrictInt = Field(ge=0)
 
 
 class IdentityRefusalCode(StrEnum):

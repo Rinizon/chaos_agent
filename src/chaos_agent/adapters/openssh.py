@@ -20,6 +20,7 @@ from chaos_agent.config import TargetAccessConfig, validate_access_files
 from chaos_agent.domain.target import (
     ApacheControlResponse,
     CpuPressureResponse,
+    DiskPressureResponse,
     HelperVersionResponse,
     IdentityResponse,
     PreflightResponse,
@@ -227,8 +228,14 @@ def _decode_response(stdout: bytes, operation: RemoteOperation) -> RemoteRespons
             RemoteOperation.APACHE_START,
         }:
             response = ApacheControlResponse.model_validate_json(document, strict=True)
-        else:
+        elif operation in {
+            RemoteOperation.CPU_PRESSURE_PREFLIGHT,
+            RemoteOperation.CPU_PRESSURE_START,
+            RemoteOperation.CPU_PRESSURE_STOP,
+        }:
             response = CpuPressureResponse.model_validate_json(document, strict=True)
+        else:
+            response = DiskPressureResponse.model_validate_json(document, strict=True)
     except (UnicodeDecodeError, json.JSONDecodeError, ValueError, ValidationError) as error:
         raise RemoteTransportError(TransportFailure.HELPER_PROTOCOL_INVALID) from error
     return response

@@ -7,6 +7,7 @@ from chaos_agent.config import TargetAccessConfig
 from chaos_agent.domain.target import (
     ApacheControlResponse,
     CpuPressureResponse,
+    DiskPressureResponse,
     HelperVersionResponse,
     IdentityResponse,
     PreflightResponse,
@@ -19,6 +20,7 @@ RemoteResponse = (
     | PreflightResponse
     | ApacheControlResponse
     | CpuPressureResponse
+    | DiskPressureResponse
 )
 
 
