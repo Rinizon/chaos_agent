@@ -456,3 +456,4 @@ If cleanup retries are exhausted or final verification cannot prove safety, the 
 - [Phase 4 specification](specs/phase-04-apache-stop.md)
 - [Target access operations guide](ops/target/README.md)
 - [Project implementation guidance](AGENTS.md)
+- [Phase 7 release notes](RELEASE_NOTES.md)
