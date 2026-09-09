@@ -12,10 +12,16 @@ from chaos_agent.domain.experiment import ExperimentRequest, calculate_expiry
 
 
 class ScenarioCatalog:
-    """Closed production catalog; scenarios are added only in their own phases."""
+    """Closed production catalog for reviewed scenarios."""
 
     def list(self) -> list[dict[str, str]]:
-        return []
+        from chaos_agent.application.scenarios.apache_stop import ApacheStopScenario
+
+        return [{
+            "name": ApacheStopScenario.name,
+            "version": ApacheStopScenario.version,
+            "description": ApacheStopScenario.description,
+        }]
 
     def contains(self, name: str) -> bool:
         return any(item["name"] == name for item in self.list())

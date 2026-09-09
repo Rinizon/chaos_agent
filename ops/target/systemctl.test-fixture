@@ -1,11 +1,21 @@
 #!/bin/sh
 set -eu
 
+state_file=/tmp/chaos-agent-apache-state
+[ -e "${state_file}" ] || : >"${state_file}"
+
 case "$*" in
     "show --property=LoadState --value apache2.service")
         printf '%s\n' loaded
         ;;
     "is-active --quiet apache2.service")
+        test -s "${state_file}"
+        ;;
+    "stop apache2.service")
+        : >"${state_file}"
+        ;;
+    "start apache2.service")
+        printf active >"${state_file}"
         ;;
     *)
         exit 1

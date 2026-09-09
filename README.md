@@ -2,7 +2,7 @@
 
 Chaos Agent is a safety-focused controller for injecting controlled incidents into an isolated development web server. The eventual target is a Linux VM running an Apache-hosted static site, while this application runs separately on a dedicated control VM.
 
-Phase 3 adds durable experiment lifecycle state, bounded cleanup controls, leases, audit records, and supervised request handling. The production scenario catalog remains empty until Phase 4, so this phase performs no real fault injection.
+Phase 4 adds the bounded `apache-stop` scenario on top of the durable experiment engine. CPU and disk-pressure scenarios remain deferred.
 
 ## Responsibility boundaries
 
@@ -47,6 +47,7 @@ The long-running process remains passive. Only an explicit `chaos preflight` inv
 - Strict host-key pinning and root-owned application identity verification.
 - Read-only Apache, disk-reserve, memory-reserve, load, and website preflight.
 - Durable experiment status, history, cancellation, reconciliation, leases, and cleanup audit records.
+- Reviewed `apache-stop` scenario contract with fixed target operations and retry-safe cleanup.
 
 ## Prerequisites
 
@@ -429,7 +430,7 @@ The CLI is not yet an incident launcher. Target access is read-only and selects 
 
 Phase 3 adds experiment lifecycle, persistence, automatic expiry, cleanup, reconciliation, and continuous observations while preserving the Phase 2 target identity and transport boundaries. It must not turn the helper or CLI into a generic remote shell.
 
-Phase 2 completion does not authorize a scenario to run without its later scenario-specific safety design and implementation.
+Phase 2 completion does not authorize scenarios beyond the reviewed `apache-stop` contract. CPU and disk-pressure scenarios remain unavailable.
 
 ### Phase 3 database operations
 
@@ -451,5 +452,7 @@ If cleanup retries are exhausted or final verification cannot prove safety, the 
 - [Project roadmap](ROADMAP.md)
 - [Phase 1 specification](specs/phase-01-foundation.md)
 - [Phase 2 specification](specs/phase-02-secure-target-access.md)
+- [Phase 3 specification](specs/phase-03-experiment-engine.md)
+- [Phase 4 specification](specs/phase-04-apache-stop.md)
 - [Target access operations guide](ops/target/README.md)
 - [Project implementation guidance](AGENTS.md)

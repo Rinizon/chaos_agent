@@ -80,7 +80,7 @@ Rollback is an operator action. The chaos-agent container cannot install, repair
 
 ## Repository validation
 
-The isolated test image installs the artifacts into a disposable Linux filesystem, validates the sudoers syntax and file modes, exercises all three read-only helper operations, proves direct non-root use fails, exercises the exact forced-command plus real `sudo -n` path, and rejects extra and injection-shaped arguments:
+The isolated test image installs the artifacts into a disposable Linux filesystem, validates the sudoers syntax and file modes, exercises the read-only helper operations and fixed Apache operations, proves direct non-root use fails, exercises the exact forced-command plus real `sudo -n` path, and rejects extra and injection-shaped arguments:
 
 ```sh
 docker build --file ops/target/Dockerfile.test --tag chaos-agent-target-contract:test .

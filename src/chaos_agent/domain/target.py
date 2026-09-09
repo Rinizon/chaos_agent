@@ -32,11 +32,14 @@ class ApacheService(StrEnum):
 
 
 class RemoteOperation(StrEnum):
-    """Closed set of read-only Phase 2 helper operations."""
+    """Closed set of helper operations available to the agent."""
 
     VERSION = "version"
     IDENTITY = "identity"
     PREFLIGHT = "preflight"
+    APACHE_STOP_PREFLIGHT = "apache-stop-preflight"
+    APACHE_STOP = "apache-stop"
+    APACHE_START = "apache-start"
 
 
 class ContractModel(BaseModel):
@@ -108,6 +111,21 @@ class PreflightResponse(HelperEnvelope):
     effective_uid: Literal[0]
     apache: ApacheFacts
     resources: ResourceFacts
+
+
+class ApacheControlResponse(HelperEnvelope):
+    """Bounded evidence from one fixed Apache control operation."""
+
+    operation: Literal["apache-stop-preflight", "apache-stop", "apache-start"]
+    marker_schema_version: Literal[1]
+    target_id: UUID
+    environment: Literal["development"]
+    role: Literal["web"]
+    apache_service: ApacheService
+    effective_uid: Literal[0]
+    installed: StrictBool
+    active: StrictBool
+    changed: StrictBool
 
 
 class IdentityRefusalCode(StrEnum):

@@ -17,7 +17,9 @@ HELPER_VERSION: Final = "0.1.0"
 PROTOCOL_VERSION: Final = 1
 MARKER_PATH: Final = Path("/etc/chaos-agent/target.json")
 SUPPORTED_SERVICES: Final = frozenset({"apache2.service", "httpd.service"})
-OPERATIONS: Final = frozenset({"version", "identity", "preflight"})
+OPERATIONS: Final = frozenset(
+    {"version", "identity", "preflight", "apache-stop-preflight", "apache-stop", "apache-start"}
+)
 MAX_OUTPUT_BYTES: Final = 65_536
 MAX_MARKER_BYTES: Final = 4096
 MARKER_KEYS: Final = frozenset(
@@ -99,6 +101,35 @@ def apache_facts(
     return {"service": service, "installed": installed, "active": active}
 
 
+def apache_control(
+    operation: str,
+    service: str,
+    runner: Callable[..., subprocess.CompletedProcess[str]] = subprocess.run,
+) -> dict[str, object]:
+    """Perform one fixed, marker-selected Apache action and report its effect."""
+    before = apache_facts(service, runner)
+    if not before["installed"]:
+        raise HelperFailure("apache_not_installed")
+    if operation == "apache-stop-preflight":
+        return {**before, "changed": False}
+    if operation == "apache-stop":
+        if not before["active"]:
+            raise HelperFailure("apache_baseline_inactive")
+        result = runner(["/usr/bin/systemctl", "stop", service], check=False,
+                        capture_output=True, text=True, timeout=5)
+        if result.returncode != 0:
+            raise HelperFailure("apache_stop_failed")
+    elif operation == "apache-start":
+        result = runner(["/usr/bin/systemctl", "start", service], check=False,
+                        capture_output=True, text=True, timeout=5)
+        if result.returncode != 0:
+            raise HelperFailure("apache_start_failed")
+    else:
+        raise HelperFailure("operation_invalid", exit_code=2)
+    after = apache_facts(service, runner)
+    return {**after, "changed": True}
+
+
 def resource_facts(
     statvfs: Callable[[str], os.statvfs_result] = os.statvfs,
     meminfo_path: Path = Path("/proc/meminfo"),
@@ -163,6 +194,9 @@ def build_response(
     }
     envelope.update(identity)
     if operation == "identity":
+        return envelope
+    if operation in {"apache-stop-preflight", "apache-stop", "apache-start"}:
+        envelope.update({"effective_uid": 0, **apache_control(operation, str(marker["apache_service"]))})
         return envelope
     envelope.update(
         {

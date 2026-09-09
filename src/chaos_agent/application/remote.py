@@ -5,13 +5,16 @@ from typing import Protocol
 
 from chaos_agent.config import TargetAccessConfig
 from chaos_agent.domain.target import (
+    ApacheControlResponse,
     HelperVersionResponse,
     IdentityResponse,
     PreflightResponse,
     RemoteOperation,
 )
 
-RemoteResponse = HelperVersionResponse | IdentityResponse | PreflightResponse
+RemoteResponse = (
+    HelperVersionResponse | IdentityResponse | PreflightResponse | ApacheControlResponse
+)
 
 
 class TransportFailure(StrEnum):

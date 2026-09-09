@@ -15,14 +15,16 @@ from chaos_agent.adapters.openssh import OpenSshTransport
 from chaos_agent.adapters.persistence.database import create_database_engine
 from chaos_agent.adapters.persistence.models import Base, ExperimentRow
 from chaos_agent.adapters.persistence.repositories import ExperimentRepository
-from chaos_agent.application.experiments import ScenarioCatalog
+from chaos_agent.application.experiments import ScenarioCatalog, schedule_experiment
 from chaos_agent.application.preflight import PreflightService
+from chaos_agent.application.scenarios.apache_stop import ApacheStopParameters
 from chaos_agent.config import (
     Settings,
     TargetAccessConfig,
     TargetConfigurationRequired,
     load_settings,
 )
+from chaos_agent.domain.experiment import ExperimentRequest
 from chaos_agent.domain.preflight import PreflightOutcome, PreflightReport
 from chaos_agent.health import evaluate_health, unhealthy_configuration_report
 from chaos_agent.logging import configure_logging, sanitize_text
@@ -76,8 +78,9 @@ def run_command(
     duration: Annotated[int | None, typer.Option("--duration")] = None,
     json_output: Annotated[bool, typer.Option("--json")] = False,
 ) -> None:
-    """Schedule an installed scenario; Phase 3 intentionally has none."""
-    if not ScenarioCatalog().contains(scenario):
+    """Schedule an installed scenario for the supervised agent."""
+    catalog = ScenarioCatalog()
+    if not catalog.contains(scenario):
         payload = {"schema_version": 1, "outcome": "refused", "category": "scenario_unavailable"}
         typer.echo(
             json.dumps(payload, separators=(",", ":"))
@@ -85,7 +88,31 @@ def run_command(
             else "Scenario is unavailable."
         )
         raise typer.Exit(code=1)
-    raise typer.Exit(code=1)
+    settings = load_settings()
+    try:
+        target = settings.require_target_access()
+    except TargetConfigurationRequired:
+        raise typer.Exit(code=2) from None
+    selected_duration = duration if duration is not None else 300
+    if scenario == "apache-stop":
+        parameters = ApacheStopParameters(duration_seconds=selected_duration)
+        identifier = schedule_experiment(
+            settings.data_dir,
+            ExperimentRequest(
+                target_id=target.target_id,
+                target_label=target.target_host,
+                scenario_name=scenario,
+                scenario_version="1.0.0",
+                parameters=parameters.model_dump(),
+                requested_duration_seconds=selected_duration,
+                initiator=initiator,
+            ),
+            actor=initiator,
+        )
+    else:
+        raise typer.Exit(code=1)
+    payload = {"schema_version": 1, "outcome": "scheduled", "experiment_id": identifier}
+    typer.echo(json.dumps(payload, separators=(",", ":")) if json_output else identifier)
 
 
 @app.command("status")

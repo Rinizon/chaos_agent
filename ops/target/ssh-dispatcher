@@ -14,6 +14,9 @@ COMMANDS: Final = {
     f"sudo -n {HELPER_PATH} version": "version",
     f"sudo -n {HELPER_PATH} identity": "identity",
     f"sudo -n {HELPER_PATH} preflight": "preflight",
+    f"sudo -n {HELPER_PATH} apache-stop-preflight": "apache-stop-preflight",
+    f"sudo -n {HELPER_PATH} apache-stop": "apache-stop",
+    f"sudo -n {HELPER_PATH} apache-start": "apache-start",
 }
 MINIMAL_ENV: Final = {"PATH": "/usr/sbin:/usr/bin:/sbin:/bin", "LANG": "C.UTF-8"}
 
