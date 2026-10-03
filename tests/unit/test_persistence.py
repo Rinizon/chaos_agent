@@ -51,3 +51,18 @@ def test_one_active_experiment_per_target(tmp_path) -> None:
     with pytest.raises(ExperimentConflict):
         repo.schedule(item, datetime.now(UTC) + timedelta(seconds=10), actor="test")
     session.rollback()
+
+
+def test_claim_cannot_overwrite_an_unexpired_owner(tmp_path) -> None:
+    session, repo = repository(tmp_path)
+    identifier = repo.schedule(request(), datetime.now(UTC) + timedelta(seconds=30), actor="test")
+    session.commit()
+    now = datetime.now(UTC)
+    assert repo.claim_next("supervisor-one", now, 30) is not None
+    session.commit()
+
+    second_session = Session(session.bind)
+    second_repo = ExperimentRepository(second_session)
+    assert second_repo.claim_next("supervisor-two", now, 30) is None
+    row = second_repo.get(str(identifier))
+    assert row is not None and row.owner_instance_id == "supervisor-one"

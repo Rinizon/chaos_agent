@@ -127,7 +127,17 @@ class ExperimentRepository:
         candidate = self.session.scalars(
             select(ExperimentRow)
             .where(
-                ExperimentRow.state.in_(["planned", "preflight", "cleaning_up", "cleanup_failed"]),
+                ExperimentRow.state.in_(
+                    [
+                        "planned",
+                        "preflight",
+                        "active",
+                        "expired",
+                        "cancellation_requested",
+                        "cleaning_up",
+                        "cleanup_failed",
+                    ]
+                ),
                 (
                     ExperimentRow.owner_instance_id.is_(None)
                     | (ExperimentRow.lease_expires_at < now)
@@ -145,6 +155,10 @@ class ExperimentRepository:
                 .where(
                     ExperimentRow.experiment_id == candidate.experiment_id,
                     ExperimentRow.revision == candidate.revision,
+                    (
+                        ExperimentRow.owner_instance_id.is_(None)
+                        | (ExperimentRow.lease_expires_at < now)
+                    ),
                 )
                 .values(
                     owner_instance_id=instance_id,

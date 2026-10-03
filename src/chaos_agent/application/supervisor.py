@@ -25,6 +25,7 @@ class Supervisor:
         self.actor = actor
         self.instance_id = instance_id or f"sup_{uuid4().hex}"
         self.lease_duration_seconds = lease_duration_seconds
+        self._startup_reconciled = False
 
     def reconcile(self) -> list[ExperimentState]:
         """Reconcile all interrupted work without ever resuming injection blindly."""
@@ -41,13 +42,24 @@ class Supervisor:
                     expected_revision=row.revision,
                 )
                 self.session.commit()
+                state = ExperimentState.CLEANING_UP
+            if state not in {
+                ExperimentState.EXPIRED,
+                ExperimentState.CANCELLATION_REQUESTED,
+                ExperimentState.CLEANING_UP,
+                ExperimentState.CLEANUP_FAILED,
+            }:
+                continue
             coordinator = self.coordinator_factory(self.session, row.scenario_name)
             results.append(coordinator.run_once(row.experiment_id))
         return results
 
     def run_once(self) -> list[ExperimentState]:
         repository = ExperimentRepository(self.session)
-        results = self.reconcile()
+        results: list[ExperimentState] = []
+        if not self._startup_reconciled:
+            results.extend(self.reconcile())
+            self._startup_reconciled = True
         for request in repository.pending_control_requests():
             row = repository.get(request.experiment_id)
             if row is not None and request.request_kind == "cancel":
@@ -82,10 +94,21 @@ class Supervisor:
         )
         if claimed is not None:
             self.session.commit()
-            coordinator = self.coordinator_factory(self.session, claimed.scenario_name)
-            results.append(coordinator.run_once(claimed.experiment_id))
-            repository.release_lease(claimed.experiment_id, self.instance_id)
+            if not repository.renew_lease(
+                claimed.experiment_id,
+                self.instance_id,
+                datetime.now(UTC),
+                self.lease_duration_seconds,
+            ):
+                self.session.rollback()
+                return results
             self.session.commit()
+            try:
+                coordinator = self.coordinator_factory(self.session, claimed.scenario_name)
+                results.append(coordinator.run_once(claimed.experiment_id))
+            finally:
+                repository.release_lease(claimed.experiment_id, self.instance_id)
+                self.session.commit()
         return results
 
     def run(self, stop: Callable[[], bool], poll_interval_seconds: float = 1.0) -> None:

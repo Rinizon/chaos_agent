@@ -44,3 +44,38 @@ def test_restart_reconciles_injecting_without_reinjection(tmp_path, monkeypatch)
 
     assert Supervisor(session, Factory()).reconcile() == [ExperimentState.CLEANUP_FAILED]
     assert repo.get(str(identifier)).state == "cleaning_up"
+
+
+def test_reconcile_does_not_cleanup_healthy_active_experiment(tmp_path) -> None:
+    engine = create_database_engine(tmp_path / "agent.db")
+    Base.metadata.create_all(engine)
+    session = Session(engine)
+    repo = ExperimentRepository(session)
+    identifier = repo.schedule(
+        ExperimentRequest(
+            target_id=uuid4(),
+            target_label="dev",
+            scenario_name="synthetic",
+            scenario_version="1.0.0",
+            initiator="test",
+        ),
+        datetime.now(UTC) + timedelta(seconds=30),
+        actor="test",
+    )
+    repo.transition(
+        str(identifier), ExperimentState.PREFLIGHT, reason="test", actor="test", expected_revision=0
+    )
+    repo.transition(
+        str(identifier), ExperimentState.INJECTING, reason="test", actor="test", expected_revision=1
+    )
+    repo.transition(
+        str(identifier), ExperimentState.ACTIVE, reason="test", actor="test", expected_revision=2
+    )
+    session.commit()
+
+    class RefusingFactory:
+        def __call__(self, session, name):
+            raise AssertionError("active experiment must not be cleanup-reconciled")
+
+    assert Supervisor(session, RefusingFactory()).reconcile() == []
+    assert repo.get(str(identifier)).state == "active"
