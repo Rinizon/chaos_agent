@@ -22,8 +22,8 @@ Deliver a safety-focused Chaos Agent whose CLI, supervised lifecycle, three appr
 
 ## Step 1 — Re-establish the Phase 1–2 quality baseline
 
-- [ ] Apply repository formatting and keep Ruff lint clean.
-- [ ] Preserve strict mypy success and package builds.
+- [x] Apply repository formatting and keep Ruff lint clean. Evidence: commit `83c97f9`; Ruff lint and format checks pass.
+- [x] Preserve strict mypy success and package builds. Evidence: strict mypy and source/wheel build passed on 2026-10-02.
 - [ ] Preserve Phase 1 local health semantics and Phase 2 read-only preflight restrictions.
 - [ ] Add a deterministic local acceptance command or script covering tests, lint, format, typing, build, migrations, helper contracts, and secret/artifact checks.
 - [ ] Update README language so implemented, accepted, deferred, and operator-blocked work are distinguishable.
@@ -32,14 +32,14 @@ Evidence: full local quality matrix, clean focused commit, and current documenta
 
 ## Step 2 — Complete the Phase 3 lifecycle engine
 
-- [ ] Keep a successfully injected experiment `active` until expiry or cancellation.
-- [ ] Reconcile uncertain `injecting` state cleanup-first without treating every active experiment as uncertain.
+- [x] Keep a successfully injected experiment `active` until expiry or cancellation. Evidence: `test_successful_injection_remains_active_before_expiry` in commit `83c97f9`.
+- [x] Reconcile uncertain `injecting` state cleanup-first without treating every active experiment as uncertain. Evidence: coordinator and supervisor tests in commit `83c97f9`.
 - [ ] Process cancellation in every eligible non-terminal state and preserve cancelled attribution through cleanup.
 - [ ] Renew and fence leases while work is owned; never release another supervisor's lease.
-- [ ] Persist bounded before, during, and after external observations.
-- [ ] Ensure observation failure never blocks expiry, cancellation, or cleanup.
+- [x] Persist bounded before, during, and after external observations. Evidence: lifecycle observation tests in commit `2c2b65d`.
+- [x] Ensure observation failure never blocks expiry, cancellation, or cleanup. Evidence: failure-path test in commit `2c2b65d`.
 - [ ] Prioritize reconciliation and cleanup during graceful shutdown.
-- [ ] Require the exact supported Alembic revision at runtime and API/CLI database entry points.
+- [x] Require the exact supported Alembic revision at runtime and API/CLI database entry points. Evidence: revision acceptance/refusal tests in commit `9b44084`.
 - [ ] Add deterministic tests for active duration, expiry, cancellation, partial injection, restart, lease loss, repeated cleanup, and shutdown.
 
 Evidence: lifecycle tests, migration compatibility tests, local process smoke, and Phase 3 acceptance updates.
