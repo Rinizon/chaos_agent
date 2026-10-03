@@ -2,12 +2,14 @@ from datetime import UTC, datetime, timedelta
 from uuid import uuid4
 
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from chaos_agent.adapters.persistence.database import create_database_engine
-from chaos_agent.adapters.persistence.models import Base
+from chaos_agent.adapters.persistence.models import Base, SiteObservationRow
 from chaos_agent.application.coordinator import ExperimentCoordinator
 from chaos_agent.domain.experiment import ExperimentRequest, ExperimentState, SanitizedEvidence
+from chaos_agent.domain.preflight import SiteObservation
 from chaos_agent.domain.scenario import CleanupContext, ScenarioContext
 
 
@@ -54,6 +56,16 @@ class Clock:
 
     def now(self) -> datetime:
         return self.current
+
+
+class Observer:
+    def __init__(self, fail: bool = False) -> None:
+        self.fail = fail
+
+    def observe(self) -> SiteObservation:
+        if self.fail:
+            raise RuntimeError("bounded observation failed")
+        return SiteObservation(status_code=200, duration_ms=5, content_matched=True)
 
 
 def setup(tmp_path, duration: int = 30):
@@ -107,6 +119,32 @@ def test_cleanup_retry_preserves_valid_context_and_attempt_count(tmp_path) -> No
     scenario.cleanup_ok = True
     assert coordinator.run_once(identifier) is ExperimentState.PASSED
     assert scenario.calls[-2:] == ["cleanup", "verify_cleanup"]
+
+
+def test_observations_are_persisted_before_during_and_after(tmp_path) -> None:
+    session, identifier = setup(tmp_path, 30)
+    scenario = FakeScenario()
+    coordinator = ExperimentCoordinator(
+        session, scenario, Preflight(), Clock(datetime.now(UTC)), observer=Observer()
+    )
+    assert coordinator.run_once(identifier) is ExperimentState.ACTIVE
+    assert coordinator.run_once(identifier) is ExperimentState.ACTIVE
+    coordinator.clock = Clock(datetime.now(UTC) + timedelta(seconds=31))
+    assert coordinator.run_once(identifier) is ExperimentState.PASSED
+    phases = session.scalars(select(SiteObservationRow.phase).order_by(SiteObservationRow.id)).all()
+    assert phases == ["before", "during", "during", "after"]
+
+
+def test_observation_failure_does_not_block_cleanup(tmp_path) -> None:
+    session, identifier = setup(tmp_path, 1)
+    result = ExperimentCoordinator(
+        session,
+        FakeScenario(),
+        Preflight(),
+        Clock(datetime.now(UTC) + timedelta(seconds=2)),
+        observer=Observer(fail=True),
+    ).run_once(identifier)
+    assert result is ExperimentState.PASSED
 
 
 def test_preflight_refusal_never_injects(tmp_path) -> None:

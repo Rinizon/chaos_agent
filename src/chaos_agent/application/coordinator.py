@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from chaos_agent.adapters.persistence.models import ExperimentRow
 from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.domain.experiment import ExperimentState
+from chaos_agent.domain.preflight import SiteObservation
 from chaos_agent.domain.scenario import CleanupContext, Scenario, ScenarioContext
 
 
@@ -17,6 +18,10 @@ class PreflightPort(Protocol):
 
 class ClockPort(Protocol):
     def now(self) -> datetime: ...
+
+
+class ObservationPort(Protocol):
+    def observe(self) -> SiteObservation: ...
 
 
 class SystemClock:
@@ -35,6 +40,7 @@ class ExperimentCoordinator:
         clock: ClockPort | None = None,
         actor: str = "supervisor",
         cleanup_max_attempts: int = 3,
+        observer: ObservationPort | None = None,
     ) -> None:
         self.session = session
         self.repository = ExperimentRepository(session)
@@ -43,6 +49,7 @@ class ExperimentCoordinator:
         self.clock = clock or SystemClock()
         self.actor = actor
         self.cleanup_max_attempts = max(1, cleanup_max_attempts)
+        self.observer = observer
 
     def run_once(self, experiment_id: str) -> ExperimentState:
         row = self.repository.get(experiment_id)
@@ -70,6 +77,8 @@ class ExperimentCoordinator:
             self.session.commit()
             row = self.repository.get(experiment_id)
             state = ExperimentState(row.state) if row else state
+        elif state is ExperimentState.ACTIVE:
+            self._observe(experiment_id, "during")
         if state in {
             ExperimentState.INJECTING,
             ExperimentState.EXPIRED,
@@ -148,6 +157,7 @@ class ExperimentCoordinator:
             )
             self.session.commit()
             return ExperimentState.FAILED
+        self._observe(row.experiment_id, "before")
         current = self.repository.get(row.experiment_id)
         if current is None:
             raise KeyError("experiment not found")
@@ -263,6 +273,7 @@ class ExperimentCoordinator:
             verified = self.scenario.verify_cleanup(context, cleanup_context).status == "ok"
         except Exception:
             verified = False
+        self._observe(experiment_id, "after")
         target = (
             ExperimentState.CANCELLED
             if cancelled and verified
@@ -282,3 +293,18 @@ class ExperimentCoordinator:
         )
         self.session.commit()
         return target
+
+    def _observe(self, experiment_id: str, phase: str) -> None:
+        if self.observer is None:
+            return
+        sequence = self.repository.next_observation_sequence(experiment_id, phase)
+        try:
+            observation = self.observer.observe()
+        except Exception as error:
+            category = getattr(getattr(error, "category", None), "value", "observation_failed")
+            self.repository.record_observation_failure(
+                experiment_id, phase, sequence, str(category)
+            )
+        else:
+            self.repository.record_observation(experiment_id, phase, sequence, observation)
+        self.session.commit()

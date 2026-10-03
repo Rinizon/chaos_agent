@@ -3,7 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
 
-from sqlalchemy import CursorResult, select, update
+from sqlalchemy import CursorResult, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -320,3 +320,30 @@ class ExperimentRepository:
                 content_matched=observation.content_matched,
             )
         )
+
+    def record_observation_failure(
+        self,
+        experiment_id: str,
+        phase: str,
+        sequence: int,
+        failure_category: str,
+    ) -> None:
+        self.session.add(
+            SiteObservationRow(
+                experiment_id=ExperimentId.validate(experiment_id),
+                phase=phase[:16],
+                sequence=sequence,
+                observed_at=datetime.now(UTC),
+                available=False,
+                failure_category=failure_category[:64],
+            )
+        )
+
+    def next_observation_sequence(self, experiment_id: str, phase: str) -> int:
+        previous = self.session.scalar(
+            select(func.max(SiteObservationRow.sequence)).where(
+                SiteObservationRow.experiment_id == ExperimentId.validate(experiment_id),
+                SiteObservationRow.phase == phase[:16],
+            )
+        )
+        return 1 if previous is None else previous + 1

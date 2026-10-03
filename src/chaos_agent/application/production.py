@@ -11,6 +11,7 @@ from chaos_agent.adapters.openssh import OpenSshTransport
 from chaos_agent.application.coordinator import ExperimentCoordinator
 from chaos_agent.application.preflight import PreflightService
 from chaos_agent.config import Settings
+from chaos_agent.domain.preflight import SiteObservation
 from chaos_agent.domain.scenario import CleanupContext, ScenarioContext
 from chaos_agent.domain.target import RemoteOperation
 
@@ -85,6 +86,15 @@ class ProductionPreflight:
         return report.outcome.value == "pass"
 
 
+class ProductionObserver:
+    def __init__(self, settings: Settings) -> None:
+        self.config = settings.require_target_access()
+        self.observer = HttpxSiteObserver()
+
+    def observe(self) -> SiteObservation:
+        return asyncio.run(self.observer.observe(self.config))
+
+
 def coordinator_factory(settings: Settings) -> Callable[[Session, str], ExperimentCoordinator]:
     control = SshScenarioControl(settings)
     scenarios = {
@@ -97,6 +107,11 @@ def coordinator_factory(settings: Settings) -> Callable[[Session, str], Experime
         scenario = scenarios.get(name)
         if scenario is None:
             raise KeyError("scenario unavailable")
-        return ExperimentCoordinator(session, cast(Any, scenario), ProductionPreflight(settings))
+        return ExperimentCoordinator(
+            session,
+            cast(Any, scenario),
+            ProductionPreflight(settings),
+            observer=ProductionObserver(settings),
+        )
 
     return factory
