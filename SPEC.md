@@ -25,7 +25,7 @@ Deliver a safety-focused Chaos Agent whose CLI, supervised lifecycle, three appr
 - [x] Apply repository formatting and keep Ruff lint clean. Evidence: commit `83c97f9`; Ruff lint and format checks pass.
 - [x] Preserve strict mypy success and package builds. Evidence: strict mypy and source/wheel build passed on 2026-10-02.
 - [ ] Preserve Phase 1 local health semantics and Phase 2 read-only preflight restrictions.
-- [ ] Add a deterministic local acceptance command or script covering tests, lint, format, typing, build, migrations, helper contracts, and secret/artifact checks.
+- [x] Add a deterministic local acceptance command or script covering tests, lint, format, typing, build, migrations, helper contracts, and secret/artifact checks. Evidence: `scripts/release-check.sh` passed in commit `b210241`.
 - [ ] Update README language so implemented, accepted, deferred, and operator-blocked work are distinguishable.
 
 Evidence: full local quality matrix, clean focused commit, and current documentation.
@@ -35,7 +35,7 @@ Evidence: full local quality matrix, clean focused commit, and current documenta
 - [x] Keep a successfully injected experiment `active` until expiry or cancellation. Evidence: `test_successful_injection_remains_active_before_expiry` in commit `83c97f9`.
 - [x] Reconcile uncertain `injecting` state cleanup-first without treating every active experiment as uncertain. Evidence: coordinator and supervisor tests in commit `83c97f9`.
 - [ ] Process cancellation in every eligible non-terminal state and preserve cancelled attribution through cleanup.
-- [ ] Renew and fence leases while work is owned; never release another supervisor's lease.
+- [ ] Renew and fence leases while work is owned; never release another supervisor's lease. Claim fencing and pre-execution renewal are complete in commit `9a7f913`; periodic renewal during a long operation remains open.
 - [x] Persist bounded before, during, and after external observations. Evidence: lifecycle observation tests in commit `2c2b65d`.
 - [x] Ensure observation failure never blocks expiry, cancellation, or cleanup. Evidence: failure-path test in commit `2c2b65d`.
 - [ ] Prioritize reconciliation and cleanup during graceful shutdown.
