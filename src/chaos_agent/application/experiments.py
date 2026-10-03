@@ -19,19 +19,23 @@ class ScenarioCatalog:
         from chaos_agent.application.scenarios.cpu_pressure import CpuPressureScenario
         from chaos_agent.application.scenarios.disk_pressure import DiskPressureScenario
 
-        return [{
-            "name": ApacheStopScenario.name,
-            "version": ApacheStopScenario.version,
-            "description": ApacheStopScenario.description,
-        }, {
-            "name": CpuPressureScenario.name,
-            "version": CpuPressureScenario.version,
-            "description": CpuPressureScenario.description,
-        }, {
-            "name": DiskPressureScenario.name,
-            "version": DiskPressureScenario.version,
-            "description": DiskPressureScenario.description,
-        }]
+        return [
+            {
+                "name": ApacheStopScenario.name,
+                "version": ApacheStopScenario.version,
+                "description": ApacheStopScenario.description,
+            },
+            {
+                "name": CpuPressureScenario.name,
+                "version": CpuPressureScenario.version,
+                "description": CpuPressureScenario.description,
+            },
+            {
+                "name": DiskPressureScenario.name,
+                "version": DiskPressureScenario.version,
+                "description": DiskPressureScenario.description,
+            },
+        ]
 
     def contains(self, name: str) -> bool:
         return any(item["name"] == name for item in self.list())

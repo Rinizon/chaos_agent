@@ -24,7 +24,13 @@ def test_integration_event_is_versioned_and_bounded() -> None:
 def test_integration_event_rejects_unknown_fields() -> None:
     with pytest.raises(ValueError):
         IntegrationEvent(
-            event_type="experiment.finalized", experiment_id="exp_" + "a" * 32,
-            scenario_name="apache-stop", scenario_version="1.0.0", target_ref="x",
-            occurred_at=datetime.now(UTC), correlation_id="c", actor="a", secret="nope"
+            event_type="experiment.finalized",
+            experiment_id="exp_" + "a" * 32,
+            scenario_name="apache-stop",
+            scenario_version="1.0.0",
+            target_ref="x",
+            occurred_at=datetime.now(UTC),
+            correlation_id="c",
+            actor="a",
+            secret="nope",
         )

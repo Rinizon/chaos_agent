@@ -84,19 +84,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         engine = create_database_engine(configured.data_dir / "chaos-agent.db")
         Base.metadata.create_all(engine)
         from sqlalchemy.orm import Session
+
         with Session(engine) as session:
             rows = ExperimentRepository(session).list_history(limit=100)
-            return {"schema_version": 1, "experiments": [
-                {"experiment_id": row.experiment_id, "scenario": row.scenario_name,
-                 "state": row.state, "expires_at": row.expires_at.isoformat()}
-                for row in rows
-            ]}
+            return {
+                "schema_version": 1,
+                "experiments": [
+                    {
+                        "experiment_id": row.experiment_id,
+                        "scenario": row.scenario_name,
+                        "state": row.state,
+                        "expires_at": row.expires_at.isoformat(),
+                    }
+                    for row in rows
+                ],
+            }
 
     @app.get("/api/v1/integration/events")
     def integration_events(_: Annotated[str, Depends(authenticate)]) -> dict[str, object]:
         engine = create_database_engine(configured.data_dir / "chaos-agent.db")
         Base.metadata.create_all(engine)
         from sqlalchemy.orm import Session
+
         with Session(engine) as session:
             events = [row.payload for row in IntegrationOutbox(session).pending()]
             return {"schema_version": 1, "events": events}

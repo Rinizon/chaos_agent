@@ -87,6 +87,28 @@ def test_successful_expiry_cleans_and_verifies(tmp_path) -> None:
     assert scenario.calls == ["inject", "cleanup", "verify_cleanup"]
 
 
+def test_successful_injection_remains_active_before_expiry(tmp_path) -> None:
+    session, identifier = setup(tmp_path, 30)
+    scenario = FakeScenario()
+    result = ExperimentCoordinator(
+        session, scenario, Preflight(), Clock(datetime.now(UTC))
+    ).run_once(identifier)
+    assert result is ExperimentState.ACTIVE
+    assert scenario.calls == ["inject"]
+
+
+def test_cleanup_retry_preserves_valid_context_and_attempt_count(tmp_path) -> None:
+    session, identifier = setup(tmp_path, 1)
+    scenario = FakeScenario(False)
+    coordinator = ExperimentCoordinator(
+        session, scenario, Preflight(), Clock(datetime.now(UTC) + timedelta(seconds=2))
+    )
+    assert coordinator.run_once(identifier) is ExperimentState.CLEANUP_FAILED
+    scenario.cleanup_ok = True
+    assert coordinator.run_once(identifier) is ExperimentState.PASSED
+    assert scenario.calls[-2:] == ["cleanup", "verify_cleanup"]
+
+
 def test_preflight_refusal_never_injects(tmp_path) -> None:
     session, identifier = setup(tmp_path)
     scenario = FakeScenario()
@@ -96,7 +118,7 @@ def test_preflight_refusal_never_injects(tmp_path) -> None:
 
 
 def test_cleanup_failure_is_not_false_success(tmp_path) -> None:
-    session, identifier = setup(tmp_path)
+    session, identifier = setup(tmp_path, 1)
     scenario = FakeScenario(False)
     result = ExperimentCoordinator(
         session, scenario, Preflight(), Clock(datetime.now(UTC) + timedelta(seconds=2))

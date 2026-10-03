@@ -52,18 +52,28 @@ class Supervisor:
             row = repository.get(request.experiment_id)
             if row is not None and request.request_kind == "cancel":
                 state = ExperimentState(row.state)
-                if state not in {ExperimentState.PASSED, ExperimentState.FAILED,
-                                 ExperimentState.CANCELLED, ExperimentState.OPERATOR_ATTENTION}:
+                if state not in {
+                    ExperimentState.PASSED,
+                    ExperimentState.FAILED,
+                    ExperimentState.CANCELLED,
+                    ExperimentState.OPERATOR_ATTENTION,
+                }:
                     if state is ExperimentState.PLANNED:
-                        repository.transition(row.experiment_id, ExperimentState.CANCELLED,
-                                              reason="abort_requested", actor=request.requester,
-                                              expected_revision=row.revision)
-                    elif state is ExperimentState.ACTIVE:
+                        repository.transition(
+                            row.experiment_id,
+                            ExperimentState.CANCELLED,
+                            reason="abort_requested",
+                            actor=request.requester,
+                            expected_revision=row.revision,
+                        )
+                    elif state in {ExperimentState.ACTIVE, ExperimentState.PREFLIGHT}:
                         repository.transition(
                             row.experiment_id,
                             ExperimentState.CANCELLATION_REQUESTED,
-                                              reason="abort_requested", actor=request.requester,
-                                              expected_revision=row.revision)
+                            reason="abort_requested",
+                            actor=request.requester,
+                            expected_revision=row.revision,
+                        )
                     self.session.commit()
             repository.complete_control_request(request.id)
             self.session.commit()

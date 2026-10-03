@@ -17,15 +17,26 @@ class IntegrationOutbox:
             raise ValueError("integration event exceeds size limit")
         if self.session.get(IntegrationEventRow, str(event.event_id)) is not None:
             return False
-        self.session.add(IntegrationEventRow(
-            event_id=str(event.event_id), experiment_id=event.experiment_id,
-            event_type=event.event_type, occurred_at=event.occurred_at,
-            payload=event.model_dump(mode="json"), delivery_state="pending", attempts=0,
-        ))
+        self.session.add(
+            IntegrationEventRow(
+                event_id=str(event.event_id),
+                experiment_id=event.experiment_id,
+                event_type=event.event_type,
+                occurred_at=event.occurred_at,
+                payload=event.model_dump(mode="json"),
+                delivery_state="pending",
+                attempts=0,
+            )
+        )
         self.session.flush()
         return True
 
     def pending(self, limit: int = 100) -> list[IntegrationEventRow]:
-        return list(self.session.scalars(select(IntegrationEventRow)
-            .where(IntegrationEventRow.delivery_state == "pending")
-            .order_by(IntegrationEventRow.occurred_at).limit(max(1, min(limit, 100)))))
+        return list(
+            self.session.scalars(
+                select(IntegrationEventRow)
+                .where(IntegrationEventRow.delivery_state == "pending")
+                .order_by(IntegrationEventRow.occurred_at)
+                .limit(max(1, min(limit, 100)))
+            )
+        )

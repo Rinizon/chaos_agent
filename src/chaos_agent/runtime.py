@@ -199,8 +199,11 @@ class PassiveRuntime:
                     self.supervisor_tick()
                 except Exception:
                     log_event(
-                        self.logger, logging.ERROR, LogEvent.AGENT_DEGRADED,
-                        "supervisor tick failed", agent_id=self.settings.agent_id,
+                        self.logger,
+                        logging.ERROR,
+                        LogEvent.AGENT_DEGRADED,
+                        "supervisor tick failed",
+                        agent_id=self.settings.agent_id,
                     )
             if not self._write_heartbeat(process_started_at, RuntimeStatus.READY):
                 self._invalidate_after_failure()
@@ -302,6 +305,7 @@ def run_passive_agent(settings: Settings, logger: logging.Logger) -> int:
         from chaos_agent.adapters.persistence.models import Base
         from chaos_agent.application.production import coordinator_factory
         from chaos_agent.application.supervisor import Supervisor
+
         engine = create_database_engine(settings.data_dir / "chaos-agent.db")
         Base.metadata.create_all(engine)
         session = Session(engine)
@@ -310,8 +314,10 @@ def run_passive_agent(settings: Settings, logger: logging.Logger) -> int:
             coordinator_factory(settings),
             lease_duration_seconds=settings.lease_duration_seconds,
         )
+
         def supervisor_tick() -> None:
             supervisor.run_once()
+
     runtime = PassiveRuntime(
         settings,
         FileHeartbeatRepository(settings.data_dir),

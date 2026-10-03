@@ -7,9 +7,15 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field, StrictStr
 
 EventType = Literal[
-    "experiment.scheduled", "experiment.preflight_completed", "experiment.injection_verified",
-    "experiment.observation", "experiment.expired", "experiment.cancellation_requested",
-    "experiment.cleanup_completed", "experiment.finalized", "integration.delivery_failed",
+    "experiment.scheduled",
+    "experiment.preflight_completed",
+    "experiment.injection_verified",
+    "experiment.observation",
+    "experiment.expired",
+    "experiment.cancellation_requested",
+    "experiment.cleanup_completed",
+    "experiment.finalized",
+    "integration.delivery_failed",
 ]
 
 

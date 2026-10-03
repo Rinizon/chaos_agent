@@ -88,16 +88,19 @@ class ExperimentRepository:
             raise KeyError("experiment not found")
         current = ExperimentState(row.state)
         validate_transition(current, target)
-        result = cast(CursorResult[Any], self.session.execute(
-            update(ExperimentRow)
-            .where(
-                ExperimentRow.experiment_id == experiment_id,
-                ExperimentRow.revision == expected_revision,
-            )
-            .values(
-                state=target.value, revision=expected_revision + 1, updated_at=datetime.now(UTC)
-            )
-        ))
+        result = cast(
+            CursorResult[Any],
+            self.session.execute(
+                update(ExperimentRow)
+                .where(
+                    ExperimentRow.experiment_id == experiment_id,
+                    ExperimentRow.revision == expected_revision,
+                )
+                .values(
+                    state=target.value, revision=expected_revision + 1, updated_at=datetime.now(UTC)
+                )
+            ),
+        )
         if result.rowcount != 1:
             raise ExperimentConflict("experiment revision is stale")
         self.session.add(
@@ -135,18 +138,21 @@ class ExperimentRepository:
         ).first()
         if candidate is None:
             return None
-        result = cast(CursorResult[Any], self.session.execute(
-            update(ExperimentRow)
-            .where(
-                ExperimentRow.experiment_id == candidate.experiment_id,
-                ExperimentRow.revision == candidate.revision,
-            )
-            .values(
-                owner_instance_id=instance_id,
-                lease_acquired_at=now,
-                lease_expires_at=now + timedelta(seconds=lease_seconds),
-            )
-        ))
+        result = cast(
+            CursorResult[Any],
+            self.session.execute(
+                update(ExperimentRow)
+                .where(
+                    ExperimentRow.experiment_id == candidate.experiment_id,
+                    ExperimentRow.revision == candidate.revision,
+                )
+                .values(
+                    owner_instance_id=instance_id,
+                    lease_acquired_at=now,
+                    lease_expires_at=now + timedelta(seconds=lease_seconds),
+                )
+            ),
+        )
         if result.rowcount != 1:
             self.session.rollback()
             return None
@@ -156,25 +162,31 @@ class ExperimentRepository:
     def renew_lease(
         self, experiment_id: str, instance_id: str, now: datetime, lease_seconds: int
     ) -> bool:
-        result = cast(CursorResult[Any], self.session.execute(
-            update(ExperimentRow)
-            .where(
-                ExperimentRow.experiment_id == experiment_id,
-                ExperimentRow.owner_instance_id == instance_id,
-            )
-            .values(lease_expires_at=now + timedelta(seconds=lease_seconds))
-        ))
+        result = cast(
+            CursorResult[Any],
+            self.session.execute(
+                update(ExperimentRow)
+                .where(
+                    ExperimentRow.experiment_id == experiment_id,
+                    ExperimentRow.owner_instance_id == instance_id,
+                )
+                .values(lease_expires_at=now + timedelta(seconds=lease_seconds))
+            ),
+        )
         return result.rowcount == 1
 
     def release_lease(self, experiment_id: str, instance_id: str) -> bool:
-        result = cast(CursorResult[Any], self.session.execute(
-            update(ExperimentRow)
-            .where(
-                ExperimentRow.experiment_id == experiment_id,
-                ExperimentRow.owner_instance_id == instance_id,
-            )
-            .values(owner_instance_id=None, lease_acquired_at=None, lease_expires_at=None)
-        ))
+        result = cast(
+            CursorResult[Any],
+            self.session.execute(
+                update(ExperimentRow)
+                .where(
+                    ExperimentRow.experiment_id == experiment_id,
+                    ExperimentRow.owner_instance_id == instance_id,
+                )
+                .values(owner_instance_id=None, lease_acquired_at=None, lease_expires_at=None)
+            ),
+        )
         return result.rowcount == 1
 
     def record_attempt(
@@ -206,6 +218,19 @@ class ExperimentRepository:
             self.session.rollback()
             return False
         return True
+
+    def next_attempt_number(self, experiment_id: str, action_kind: str) -> int:
+        """Return the next append-only attempt number for one action."""
+        previous = self.session.scalars(
+            select(ActionAttemptRow.attempt)
+            .where(
+                ActionAttemptRow.experiment_id == ExperimentId.validate(experiment_id),
+                ActionAttemptRow.action_kind == action_kind[:32],
+            )
+            .order_by(ActionAttemptRow.attempt.desc())
+            .limit(1)
+        ).first()
+        return 1 if previous is None else previous + 1
 
     def pending_control_requests(self, experiment_id: str | None = None) -> list[ControlRequestRow]:
         query = select(ControlRequestRow).where(ControlRequestRow.processing_state == "pending")

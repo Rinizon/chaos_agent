@@ -15,7 +15,9 @@ def test_scenarios_require_bearer_token() -> None:
     response = client.get("/api/v1/scenarios", headers={"Authorization": "Bearer " + "x" * 16})
     assert response.status_code == 200
     assert {item["name"] for item in response.json()["scenarios"]} == {
-        "apache-stop", "cpu-pressure", "disk-pressure"
+        "apache-stop",
+        "cpu-pressure",
+        "disk-pressure",
     }
 
 

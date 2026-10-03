@@ -29,32 +29,46 @@ class SshScenarioControl:
 
     def apache_stop_preflight(self, context: ScenarioContext) -> Any:
         return self.call(RemoteOperation.APACHE_STOP_PREFLIGHT)
+
     def apache_stop(self, context: ScenarioContext) -> Any:
         return self.call(RemoteOperation.APACHE_STOP)
+
     def apache_start(self, context: ScenarioContext) -> Any:
         return self.call(RemoteOperation.APACHE_START)
+
     def cpu_pressure_preflight(self, context: ScenarioContext, parameters: Any) -> Any:
         return self.call(RemoteOperation.CPU_PRESSURE_PREFLIGHT)
+
     def preflight(self, context: ScenarioContext, parameters: Any) -> Any:
         return self.cpu_pressure_preflight(context, parameters)
+
     def start(self, context: ScenarioContext, parameters: Any) -> Any:
         return self.cpu_pressure_start(context, parameters)
+
     def stop(self, context: ScenarioContext, cleanup: CleanupContext) -> Any:
         return self.cpu_pressure_stop(context, cleanup)
+
     def cpu_pressure_start(self, context: ScenarioContext, parameters: Any) -> Any:
         return self.call(RemoteOperation.CPU_PRESSURE_START)
+
     def cpu_pressure_stop(self, context: ScenarioContext, cleanup: CleanupContext) -> Any:
         return self.call(RemoteOperation.CPU_PRESSURE_STOP)
+
     def disk_pressure_preflight(self, context: ScenarioContext, parameters: Any) -> Any:
         return self.call(RemoteOperation.DISK_PRESSURE_PREFLIGHT)
+
     def disk_pressure_start(self, context: ScenarioContext, parameters: Any) -> Any:
         return self.call(RemoteOperation.DISK_PRESSURE_START)
+
     def disk_pressure_stop(self, context: ScenarioContext, cleanup: CleanupContext) -> Any:
         return self.call(RemoteOperation.DISK_PRESSURE_STOP)
+
     def disk_preflight(self, context: ScenarioContext, parameters: Any) -> Any:
         return self.disk_pressure_preflight(context, parameters)
+
     def disk_start(self, context: ScenarioContext, parameters: Any) -> Any:
         return self.disk_pressure_start(context, parameters)
+
     def disk_stop(self, context: ScenarioContext, cleanup: CleanupContext) -> Any:
         return self.disk_pressure_stop(context, cleanup)
 
@@ -78,11 +92,11 @@ def coordinator_factory(settings: Settings) -> Callable[[Session, str], Experime
         "cpu-pressure": CpuPressureScenario(control),
         "disk-pressure": DiskPressureScenario(control),
     }
+
     def factory(session: Session, name: str) -> ExperimentCoordinator:
         scenario = scenarios.get(name)
         if scenario is None:
             raise KeyError("scenario unavailable")
-        return ExperimentCoordinator(
-            session, cast(Any, scenario), ProductionPreflight(settings)
-        )
+        return ExperimentCoordinator(session, cast(Any, scenario), ProductionPreflight(settings))
+
     return factory

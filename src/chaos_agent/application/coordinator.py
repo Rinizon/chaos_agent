@@ -72,7 +72,6 @@ class ExperimentCoordinator:
             state = ExperimentState(row.state) if row else state
         if state in {
             ExperimentState.INJECTING,
-            ExperimentState.ACTIVE,
             ExperimentState.EXPIRED,
             ExperimentState.CANCELLATION_REQUESTED,
             ExperimentState.CLEANING_UP,
@@ -80,9 +79,9 @@ class ExperimentCoordinator:
         }:
             if state in {
                 ExperimentState.INJECTING,
-                ExperimentState.ACTIVE,
                 ExperimentState.EXPIRED,
                 ExperimentState.CANCELLATION_REQUESTED,
+                ExperimentState.CLEANUP_FAILED,
             }:
                 current = self.repository.get(experiment_id)
                 if current is None:
@@ -95,8 +94,15 @@ class ExperimentCoordinator:
                     expected_revision=current.revision,
                 )
                 self.session.commit()
+            cleanup_row = self.repository.get(experiment_id)
+            if cleanup_row is None:
+                raise KeyError("experiment not found")
             state = self._cleanup(
-                experiment_id, cancelled=state is ExperimentState.CANCELLATION_REQUESTED
+                experiment_id,
+                cancelled=(
+                    state is ExperimentState.CANCELLATION_REQUESTED
+                    or cleanup_row.final_outcome == "cancelled_pending"
+                ),
             )
         return state
 
@@ -203,33 +209,33 @@ class ExperimentCoordinator:
         cleanup_context = CleanupContext.model_validate(
             row.cleanup_context or {"version": self.scenario.version}
         )
-        attempt = (
-            len(row.cleanup_context.get("cleanup_attempts", [])) + 1
-            if row.cleanup_context
-            else 1
-        )
+        if cancelled:
+            row.final_outcome = "cancelled_pending"
+            self.session.commit()
+        attempt = self.repository.next_attempt_number(experiment_id, "cleanup")
         started = self.clock.now()
         try:
             evidence = self.scenario.cleanup(context, cleanup_context)
         except Exception:
             evidence = None
         self.repository.record_attempt(
-            experiment_id, "cleanup", attempt,
+            experiment_id,
+            "cleanup",
+            attempt,
             "ok" if evidence is not None and evidence.status == "ok" else "failed",
             {"message": "cleanup completed" if evidence is not None else "cleanup raised an error"},
-            started_at=started, completed_at=self.clock.now(),
+            started_at=started,
+            completed_at=self.clock.now(),
         )
         self.session.commit()
         if evidence is None or evidence.status != "ok":
-            context_values = dict(row.cleanup_context or {})
-            attempts = list(context_values.get("cleanup_attempts", []))
-            attempts.append(str(attempt))
-            context_values["cleanup_attempts"] = attempts[-self.cleanup_max_attempts :]
-            row.cleanup_context = context_values
             if attempt >= self.cleanup_max_attempts:
                 self.repository.transition(
-                    experiment_id, ExperimentState.OPERATOR_ATTENTION,
-                    reason="cleanup_failed", actor=self.actor, expected_revision=row.revision,
+                    experiment_id,
+                    ExperimentState.OPERATOR_ATTENTION,
+                    reason="cleanup_failed",
+                    actor=self.actor,
+                    expected_revision=row.revision,
                 )
                 row.attention_reason = "cleanup_attempts_exhausted"
                 self.session.commit()
