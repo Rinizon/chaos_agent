@@ -8,8 +8,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, ConfigDict, Field, StrictInt, StrictStr
 
-from chaos_agent.adapters.persistence.database import create_database_engine
-from chaos_agent.adapters.persistence.models import Base
+from chaos_agent.adapters.persistence.database import create_database_engine, require_current_schema
 from chaos_agent.adapters.persistence.outbox import IntegrationOutbox
 from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.application.experiments import ScenarioCatalog, schedule_experiment
@@ -82,7 +81,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/v1/experiments")
     def experiments(_: Annotated[str, Depends(authenticate)]) -> dict[str, object]:
         engine = create_database_engine(configured.data_dir / "chaos-agent.db")
-        Base.metadata.create_all(engine)
+        require_current_schema(engine)
         from sqlalchemy.orm import Session
 
         with Session(engine) as session:
@@ -103,7 +102,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @app.get("/api/v1/integration/events")
     def integration_events(_: Annotated[str, Depends(authenticate)]) -> dict[str, object]:
         engine = create_database_engine(configured.data_dir / "chaos-agent.db")
-        Base.metadata.create_all(engine)
+        require_current_schema(engine)
         from sqlalchemy.orm import Session
 
         with Session(engine) as session:

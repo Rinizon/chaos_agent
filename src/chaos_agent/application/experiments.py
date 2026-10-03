@@ -5,8 +5,7 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from chaos_agent.adapters.persistence.database import create_database_engine
-from chaos_agent.adapters.persistence.models import Base
+from chaos_agent.adapters.persistence.database import create_database_engine, require_current_schema
 from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.domain.experiment import ExperimentRequest, calculate_expiry
 
@@ -43,7 +42,7 @@ class ScenarioCatalog:
 
 def schedule_experiment(data_dir: Path, request: ExperimentRequest, *, actor: str) -> str:
     engine = create_database_engine(data_dir / "chaos-agent.db")
-    Base.metadata.create_all(engine)
+    require_current_schema(engine)
     with Session(engine) as session:
         identifier = ExperimentRepository(session).schedule(
             request,

@@ -301,13 +301,15 @@ def run_passive_agent(settings: Settings, logger: logging.Logger) -> int:
     ):
         from sqlalchemy.orm import Session
 
-        from chaos_agent.adapters.persistence.database import create_database_engine
-        from chaos_agent.adapters.persistence.models import Base
+        from chaos_agent.adapters.persistence.database import (
+            create_database_engine,
+            require_current_schema,
+        )
         from chaos_agent.application.production import coordinator_factory
         from chaos_agent.application.supervisor import Supervisor
 
         engine = create_database_engine(settings.data_dir / "chaos-agent.db")
-        Base.metadata.create_all(engine)
+        require_current_schema(engine)
         session = Session(engine)
         supervisor = Supervisor(
             session,

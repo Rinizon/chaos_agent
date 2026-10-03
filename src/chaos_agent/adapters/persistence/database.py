@@ -3,7 +3,14 @@
 from pathlib import Path
 from typing import Any
 
+from alembic.migration import MigrationContext
 from sqlalchemy import Engine, create_engine, event
+
+SUPPORTED_SCHEMA_REVISION = "0004"
+
+
+class SchemaCompatibilityError(RuntimeError):
+    """The database is absent, unversioned, or not at the supported revision."""
 
 
 def create_database_engine(database_path: Path) -> Engine:
@@ -25,3 +32,17 @@ def create_database_engine(database_path: Path) -> Engine:
         cursor.close()
 
     return engine
+
+
+def require_current_schema(engine: Engine) -> None:
+    """Refuse startup unless Alembic records the exact supported schema."""
+    try:
+        with engine.connect() as connection:
+            revision = MigrationContext.configure(connection).get_current_revision()
+    except Exception as error:
+        raise SchemaCompatibilityError("database schema could not be inspected") from error
+    if revision != SUPPORTED_SCHEMA_REVISION:
+        raise SchemaCompatibilityError(
+            f"database schema revision must be {SUPPORTED_SCHEMA_REVISION}; "
+            "run the documented migration"
+        )

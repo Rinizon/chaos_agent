@@ -12,8 +12,8 @@ from sqlalchemy.orm import Session
 
 from chaos_agent.adapters.http_observer import HttpxSiteObserver
 from chaos_agent.adapters.openssh import OpenSshTransport
-from chaos_agent.adapters.persistence.database import create_database_engine
-from chaos_agent.adapters.persistence.models import Base, ExperimentRow
+from chaos_agent.adapters.persistence.database import create_database_engine, require_current_schema
+from chaos_agent.adapters.persistence.models import ExperimentRow
 from chaos_agent.adapters.persistence.repositories import ExperimentRepository
 from chaos_agent.application.experiments import ScenarioCatalog, schedule_experiment
 from chaos_agent.application.preflight import PreflightService
@@ -44,7 +44,7 @@ app = typer.Typer(
 
 def _experiment_session(data_dir: Path) -> Session:
     engine = create_database_engine(data_dir / "chaos-agent.db")
-    Base.metadata.create_all(engine)
+    require_current_schema(engine)
     return Session(engine)
 
 
