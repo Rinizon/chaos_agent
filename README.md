@@ -2,7 +2,7 @@
 
 Chaos Agent is a safety-focused controller for injecting controlled incidents into an isolated development web server. The eventual target is a Linux VM running an Apache-hosted static site, while this application runs separately on a dedicated control VM.
 
-Phase 4 adds the bounded `apache-stop` scenario on top of the durable experiment engine. CPU and disk-pressure scenarios remain deferred.
+Phase 4 adds the bounded `apache-stop` scenario on top of the durable experiment engine. CPU and disk-pressure implementations remain under development and are deliberately unavailable from the production catalog until their target-side safety contracts pass.
 
 ## Responsibility boundaries
 

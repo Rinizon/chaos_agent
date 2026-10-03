@@ -2,7 +2,7 @@
 
 ## Scope
 
-This release contains the CLI foundations, secure target preflight, durable experiment engine, and reviewed contracts for `apache-stop`, `cpu-pressure`, and `disk-pressure`.
+This release contains the CLI foundations, secure target preflight, durable experiment engine, and the locally reviewed `apache-stop` scenario. CPU and disk-pressure contracts remain in development and are intentionally absent from the production catalog.
 
 ## Release status
 

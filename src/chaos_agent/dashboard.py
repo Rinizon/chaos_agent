@@ -13,7 +13,7 @@ input,select{padding:.55rem;border:1px solid #8c959f;border-radius:6px}label{mar
 .status{padding:.5rem;background:#ddf4ff;border-radius:6px}table{width:100%;border-collapse:collapse;margin-top:1rem}th,td{text-align:left;padding:.6rem;border-bottom:1px solid #d8dee4}
 </style></head><body><main><h1>Chaos Agent</h1><p class="status" id="health">Loading local agent health…</p>
 <section><h2>Launch experiment</h2><label>Bearer token <input id="token" type="password" autocomplete="off"></label>
-<label>Scenario <select id="scenario"><option>apache-stop</option><option>cpu-pressure</option><option>disk-pressure</option></select></label>
+<label>Scenario <select id="scenario"><option>apache-stop</option></select></label>
 <label>Duration <input id="duration" type="number" min="1" max="900" value="300"></label>
 <button id="launch">Launch</button><p id="message" role="status"></p></section>
 <section><h2>Experiment history</h2><button id="refresh">Refresh</button><table><thead><tr><th>ID</th><th>Scenario</th><th>State</th><th>Expires</th></tr></thead><tbody id="history"></tbody></table></section>

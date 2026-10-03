@@ -14,11 +14,7 @@ def test_scenarios_require_bearer_token() -> None:
     assert client.get("/api/v1/scenarios").status_code == 401
     response = client.get("/api/v1/scenarios", headers={"Authorization": "Bearer " + "x" * 16})
     assert response.status_code == 200
-    assert {item["name"] for item in response.json()["scenarios"]} == {
-        "apache-stop",
-        "cpu-pressure",
-        "disk-pressure",
-    }
+    assert {item["name"] for item in response.json()["scenarios"]} == {"apache-stop"}
 
 
 def test_dashboard_is_safe_html_and_public_shell() -> None:
