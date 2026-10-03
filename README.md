@@ -438,8 +438,11 @@ The experiment database is the `chaos-agent.db` file beneath `CHAOS_DATA_DIR`. A
 
 ```sh
 cd /path/to/chaos-agent
-CHAOS_DATA_DIR=/var/lib/chaos-agent .venv/bin/alembic upgrade head
+CHAOS_DATABASE_URL=sqlite:////var/lib/chaos-agent/chaos-agent.db uv run alembic upgrade head
 ```
+
+The URL must identify an absolute SQLite path (four slashes after `sqlite:`). Application
+startup refuses an absent, older, or newer schema; it never creates or upgrades tables implicitly.
 
 Before an upgrade, stop the agent and make a consistent SQLite backup with the SQLite backup API (or an equivalent database-aware tool). Do not copy a live WAL-mode database file. Verify the backup by opening it read-only and checking that its Alembic revision is expected. Restore only while the agent is stopped, then run `alembic upgrade head` and `chaos health --json`.
 

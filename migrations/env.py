@@ -1,9 +1,16 @@
+import os
+
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
 from chaos_agent.adapters.persistence.models import Base
 
 config = context.config
+database_url = os.environ.get("CHAOS_DATABASE_URL")
+if database_url is not None:
+    if not database_url.startswith("sqlite:////"):
+        raise RuntimeError("CHAOS_DATABASE_URL must be an absolute SQLite URL")
+    config.set_main_option("sqlalchemy.url", database_url)
 target_metadata = Base.metadata
 
 
